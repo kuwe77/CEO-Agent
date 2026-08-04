@@ -14,7 +14,7 @@ export function DashboardLive() {
 
   useEffect(() => {
     setBreadcrumbs([
-      { label: "Dashboard", href: "/dashboard" },
+      { label: "Command Center", href: "/dashboard" },
       { label: "Live runs" },
     ]);
   }, [setBreadcrumbs]);
@@ -37,7 +37,7 @@ export function DashboardLive() {
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Dashboard
+            Command Center
           </Link>
           <h1 className="mt-2 text-2xl font-semibold tracking-normal text-foreground">Live agent runs</h1>
           <p className="mt-1 text-sm text-muted-foreground">

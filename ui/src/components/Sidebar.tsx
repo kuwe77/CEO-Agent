@@ -202,7 +202,7 @@ export function Sidebar() {
               newTaskButton
             );
           })()}
-          <SidebarNavItem to="/dashboard" label="Dashboard" icon={LayoutDashboard} liveCount={liveRunCount} />
+          <SidebarNavItem to="/dashboard" label="Command Center" icon={LayoutDashboard} liveCount={liveRunCount} />
           <SidebarNavItem
             to="/inbox"
             label="Inbox"
@@ -276,7 +276,10 @@ export function Sidebar() {
         {/* Classic mode restores the per-project collapsible below Work. */}
         {streamlined ? null : <SidebarProjects />}
 
-        <SidebarAgents streamlined={streamlined} />
+        <SidebarAgents
+          streamlined={streamlined}
+          builtInAgentsEnabled={experimentalSettings?.enableBuiltInAgents === true}
+        />
 
         <SidebarSection label="Company" collapsible={{ open: companyOpen, onOpenChange: setCompanyOpen }}>
           <SidebarNavItem to="/org" label="Org" icon={Network} />
