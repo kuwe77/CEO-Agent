@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -102,6 +104,15 @@ describe("CommandCenter", () => {
     container.remove();
   });
 
+  it("uses opaque dark ink for routing detail text on the orange panel", () => {
+    const css = readFileSync(resolve(process.cwd(), "src/index.css"), "utf8");
+
+    expect(css).toContain(`.ceo-command-center__routing-intro,
+.ceo-command-center__state {
+  color: var(--ceo-command-accent-ink);
+}`);
+  });
+
   it("renders live command-center sections with real work and evidence", async () => {
     await act(async () => {
       root.render(
@@ -131,6 +142,37 @@ describe("CommandCenter", () => {
     expect(container.textContent).toContain("Live operations");
     expect(container.textContent).toContain("Delivery brief");
     expect(container.textContent).toContain("Agent topology");
+    expect(container.querySelector('[data-testid="ceo-editorial-dashboard"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="ceo-model-routing"]')).not.toBeNull();
+    expect(container.textContent).toContain("Model routing");
+    expect(container.textContent).toContain("Hermes profile: founder");
+  });
+
+  it("keeps routing visible when a Hermes agent has malformed adapter configuration", async () => {
+    const malformedAgent = { ...agents[0], adapterConfig: null } as unknown as Agent;
+
+    await act(async () => {
+      root.render(
+        <CommandCenter
+          companyId="company-1"
+          companyName="CEO Agent Labs"
+          summary={dashboard}
+          agents={[malformedAgent]}
+          issues={[]}
+          artifacts={[]}
+          activity={[]}
+          agentMap={new Map([[malformedAgent.id, malformedAgent]])}
+          userProfileMap={new Map()}
+          entityNameMap={new Map()}
+          entityTitleMap={new Map()}
+          lastUpdatedAt={null}
+        />,
+      );
+    });
+
+    expect(container.querySelector('[data-testid="ceo-model-routing"]')).not.toBeNull();
+    expect(container.textContent).toContain("Founder");
+    expect(container.textContent).not.toContain("Hermes profile: founder");
   });
 
   it("names disconnected evidence and audit states without inventing data", async () => {

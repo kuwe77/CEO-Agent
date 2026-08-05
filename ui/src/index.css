@@ -266,6 +266,21 @@
   /* Redesigned chat-shell column cap (phase 2c): one token caps the page
      wrapper, thread body, and pinned composer so they widen in lockstep. */
   --tc-shell-max-w: 60rem;
+
+  /* CEO command-center visual system. Scoped in use so the board's existing
+     application palette stays intact outside this operational surface. */
+  --ceo-command-stage: oklch(0.22 0.012 62);
+  --ceo-command-surface: oklch(0.955 0.018 84);
+  --ceo-command-ink: oklch(0.2 0.018 56);
+  --ceo-command-muted: oklch(0.48 0.025 65);
+  --ceo-command-panel: oklch(0.27 0.013 62);
+  --ceo-command-panel-strong: oklch(0.2 0.01 62);
+  --ceo-command-panel-text: oklch(0.94 0.012 84);
+  --ceo-command-panel-muted: oklch(0.72 0.018 76);
+  --ceo-command-line: oklch(0.7 0.025 74 / 0.3);
+  --ceo-command-accent: oklch(0.64 0.16 52);
+  --ceo-command-accent-ink: oklch(0.19 0.022 48);
+  --ceo-command-radius: var(--radius-2xl);
 }
 
 .dark {
@@ -2360,3 +2375,199 @@ span.paperclip-mention-chip[data-mention-kind="external-object"] {
    * allow ui/src/pages/Projects.test.tsx — mock project color fixture
    * allow ui/src/pages/Routines.test.tsx — mock routine/label color fixtures
    ── end allowlist ── */
+
+/* CEO command center: an intentionally scoped editorial operations surface. */
+.ceo-command-center {
+  --ceo-accent: var(--ceo-command-accent);
+  background: var(--ceo-command-stage);
+  border-color: var(--ceo-command-line);
+  color: var(--ceo-command-panel-text);
+}
+
+.ceo-command-center:focus-within {
+  border-color: color-mix(in oklab, var(--ceo-command-accent) 48%, var(--ceo-command-line));
+}
+
+.ceo-command-center :focus-visible {
+  outline-color: var(--ceo-command-accent);
+}
+
+.ceo-command-center__header {
+  background: var(--ceo-command-surface);
+  border-color: var(--ceo-command-line);
+  border-radius: var(--ceo-command-radius);
+  color: var(--ceo-command-ink);
+}
+
+.ceo-command-center__attention,
+.ceo-command-center__metrics {
+  padding: var(--radius-lg);
+}
+
+.ceo-command-center__monogram {
+  background: var(--ceo-command-accent);
+  border-color: color-mix(in oklab, var(--ceo-command-accent) 72%, var(--ceo-command-ink));
+  border-radius: var(--ceo-command-radius);
+  color: var(--ceo-command-accent-ink);
+}
+
+.ceo-command-center__eyebrow {
+  color: var(--ceo-command-accent);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ceo-command-center__title,
+.ceo-command-center__routing-title {
+  color: inherit;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.ceo-command-center__title {
+  font-size: var(--text-2xl);
+  line-height: var(--text-2xl--line-height);
+}
+
+.ceo-command-center__header-copy,
+.ceo-command-center__status {
+  color: var(--ceo-command-muted);
+}
+
+.ceo-command-center__status a {
+  color: var(--ceo-command-ink);
+}
+
+.ceo-command-center__attention > section,
+.ceo-command-center__metrics > div {
+  background: var(--ceo-command-panel-strong);
+  border-color: var(--ceo-command-line);
+  border-radius: var(--ceo-command-radius);
+}
+
+.ceo-command-center__metrics > div {
+  overflow: hidden;
+}
+
+.ceo-command-center__command-grid > section:not(.ceo-command-center__routing),
+.ceo-command-center__panel,
+.ceo-command-center__topology > section,
+.ceo-command-center__plugin {
+  background: var(--ceo-command-panel);
+  border-color: var(--ceo-command-line);
+  border-radius: var(--ceo-command-radius);
+  color: var(--ceo-command-panel-text);
+}
+
+.ceo-command-center .border-border,
+.ceo-command-center .divide-border > :not(:last-child) {
+  border-color: var(--ceo-command-line);
+}
+
+.ceo-command-center__routing {
+  background: var(--ceo-command-accent);
+  border-color: color-mix(in oklab, var(--ceo-command-accent) 72%, var(--ceo-command-accent-ink));
+  color: var(--ceo-command-accent-ink);
+}
+
+.ceo-command-center__routing-heading {
+  align-items: start;
+  display: flex;
+  gap: var(--radius-lg);
+  justify-content: space-between;
+}
+
+.ceo-command-center__routing .ceo-command-center__eyebrow,
+.ceo-command-center__routing .text-ceo-accent,
+.ceo-command-center__routing .inline-flex {
+  color: var(--ceo-command-accent-ink);
+}
+
+.ceo-command-center__routing-title {
+  font-size: var(--text-xl);
+  line-height: var(--text-xl--line-height);
+}
+
+.ceo-command-center__routing-intro,
+.ceo-command-center__state {
+  color: var(--ceo-command-accent-ink);
+}
+
+.ceo-command-center__routing-list {
+  border-color: color-mix(in oklab, var(--ceo-command-accent-ink) 28%, transparent);
+  border-top-width: 1px;
+  margin-top: var(--radius-lg);
+}
+
+.ceo-command-center__routing-row {
+  align-items: center;
+  border-color: color-mix(in oklab, var(--ceo-command-accent-ink) 20%, transparent);
+  border-bottom-width: 1px;
+  display: grid;
+  gap: var(--radius-sm);
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding-block: var(--radius-sm);
+}
+
+.ceo-command-center__agent-name {
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ceo-command-center__adapter,
+.ceo-command-center__profile {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.ceo-command-center__profile {
+  grid-column: 1 / -1;
+}
+
+.ceo-command-center .text-foreground,
+.ceo-command-center .hover\:text-foreground:hover {
+  color: var(--ceo-command-panel-text);
+}
+
+.ceo-command-center .text-muted-foreground,
+.ceo-command-center .hover\:text-muted-foreground:hover {
+  color: var(--ceo-command-panel-muted);
+}
+
+.ceo-command-center .bg-card,
+.ceo-command-center .bg-background,
+.ceo-command-center .bg-background\/70,
+.ceo-command-center .bg-background\/60 {
+  background-color: var(--ceo-command-panel-strong);
+}
+
+.ceo-command-center .hover\:bg-accent\/50:hover {
+  background-color: color-mix(in oklab, var(--ceo-command-accent) 16%, var(--ceo-command-panel));
+}
+
+.ceo-command-center__run-card {
+  background: var(--ceo-command-panel-strong) !important;
+  border-color: var(--ceo-command-line) !important;
+}
+
+@media (max-width: 40rem) {
+  .ceo-command-center__routing-row {
+    align-items: start;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ceo-command-center *,
+  .ceo-command-center *::before,
+  .ceo-command-center *::after {
+    scroll-behavior: auto;
+    transition-duration: 0ms;
+  }
+}

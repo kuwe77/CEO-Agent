@@ -8,9 +8,10 @@ import { formatCents } from "@/lib/utils";
 import { timeAgo } from "@/lib/timeAgo";
 import { PluginSlotOutlet } from "@/plugins/slots";
 import type { CompanyUserProfile } from "@/lib/company-members";
+import { getAdapterLabel } from "@/adapters/adapter-display-registry";
 import { AlertTriangle, ArrowUpRight, Bot, CircleDot, FileText, ShieldCheck, WalletCards } from "lucide-react";
 import { AgentTopologyCanvas } from "./AgentTopologyCanvas";
-import { getOperationalState } from "./command-center-model";
+import { extractHermesProfile, getOperationalState } from "./command-center-model";
 
 interface CommandCenterProps {
   companyId: string;
@@ -109,6 +110,56 @@ function FounderAttention({ summary }: { summary: DashboardSummary }) {
           </div>
         )}
       </div>
+    </section>
+  );
+}
+
+function configuredHermesProfile(agent: Agent): string | null {
+  const extracted = extractHermesProfile(agent);
+  if (extracted) return extracted;
+
+  const adapterConfig = agent.adapterConfig;
+  const configured = adapterConfig && typeof adapterConfig === "object" ? adapterConfig.profile : undefined;
+  return (agent.adapterType === "hermes_gateway" || agent.adapterType === "hermes_local")
+    && typeof configured === "string"
+    && configured.trim()
+    ? configured.trim()
+    : null;
+}
+
+function ModelRouting({ agents, agentsError }: Pick<CommandCenterProps, "agents" | "agentsError">) {
+  return (
+    <section className="ceo-command-center__routing rounded-2xl border p-4 xl:row-span-2" data-testid="ceo-model-routing" aria-labelledby="model-routing-title">
+      <div className="ceo-command-center__routing-heading">
+        <div>
+          <p className="ceo-command-center__eyebrow">Execution map</p>
+          <h2 id="model-routing-title" className="ceo-command-center__routing-title">Model routing</h2>
+        </div>
+        {sectionLink("/agents", "Agent registry")}
+      </div>
+      <p className="ceo-command-center__routing-intro">Adapter paths currently configured for this company.</p>
+      {agentsError ? (
+        <p className="ceo-command-center__state text-destructive">Agent routing could not be loaded. Open Agent registry to retry.</p>
+      ) : agents === undefined ? (
+        <p className="ceo-command-center__state">Loading configured agent routes.</p>
+      ) : agents.length === 0 ? (
+        <p className="ceo-command-center__state">No agents are connected to this company yet.</p>
+      ) : (
+        <div className="ceo-command-center__routing-list">
+          {[...agents]
+            .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: "base" }))
+            .map((agent) => {
+              const hermesProfile = configuredHermesProfile(agent);
+              return (
+                <div className="ceo-command-center__routing-row" key={agent.id}>
+                  <span className="ceo-command-center__agent-name">{agent.name}</span>
+                  <span className="ceo-command-center__adapter">{getAdapterLabel(agent.adapterType)}</span>
+                  {hermesProfile && <span className="ceo-command-center__profile">Hermes profile: {hermesProfile}</span>}
+                </div>
+              );
+            })}
+        </div>
+      )}
     </section>
   );
 }
@@ -246,38 +297,38 @@ export function CommandCenter(props: CommandCenterProps) {
   const updatedLabel = props.lastUpdatedAt ? `Updated ${timeAgo(props.lastUpdatedAt)}` : "Last update unavailable";
 
   return (
-    <div className="space-y-4">
-      <header className="border-b border-border pb-4">
+    <div className="ceo-command-center space-y-4 rounded-2xl border p-4 lg:p-6" data-testid="ceo-editorial-dashboard">
+      <header className="ceo-command-center__header p-4 lg:p-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex items-start gap-3">
             <div
-              className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-ceo-accent/30 bg-ceo-accent/10 font-mono text-sm font-semibold text-ceo-accent"
+              className="ceo-command-center__monogram flex size-9 shrink-0 items-center justify-center font-mono text-sm font-semibold"
               aria-hidden="true"
             >
               CA
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-ceo-accent">CEO Agent</p>
-              <h1 className="mt-1 text-xl font-semibold tracking-tight text-foreground">{props.companyName}</h1>
-              <p className="mt-2 text-sm text-muted-foreground">Founder principal: review live exceptions, decide priorities, and keep the company directed.</p>
+              <p className="ceo-command-center__eyebrow">CEO Agent</p>
+              <h1 className="ceo-command-center__title mt-1">{props.companyName}</h1>
+              <p className="ceo-command-center__header-copy mt-2">Founder principal: review live exceptions, decide priorities, and keep the company directed.</p>
             </div>
           </div>
-          <div className="text-left lg:text-right">
-            <Link to={state.route} className="text-sm font-medium text-foreground hover:text-ceo-accent hover:underline">{state.label}</Link>
-            <p className="mt-1 text-xs text-muted-foreground">{updatedLabel}</p>
+          <div className="ceo-command-center__status text-left lg:text-right">
+            <Link to={state.route} className="text-sm font-medium hover:underline">{state.label}</Link>
+            <p className="mt-1 text-xs">{updatedLabel}</p>
           </div>
         </div>
       </header>
 
-      <FounderAttention summary={props.summary} />
-      <MetricRail summary={props.summary} />
+      <div className="ceo-command-center__attention"><FounderAttention summary={props.summary} /></div>
+      <div className="ceo-command-center__metrics"><MetricRail summary={props.summary} /></div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="ceo-command-center__command-grid grid gap-4 xl:grid-cols-2">
+        <ModelRouting agents={props.agents} agentsError={props.agentsError} />
         <WorkInMotion agents={props.agents} issues={props.issues} issuesError={props.issuesError} />
         <Evidence artifacts={props.artifacts} artifactsError={props.artifactsError} />
-      </div>
 
-      <section className="rounded-lg border border-border bg-card p-4" aria-labelledby="operations-title">
+        <section className="ceo-command-center__panel ceo-command-center__operations rounded-2xl border p-4" aria-labelledby="operations-title">
         <div className="mb-3 flex items-center justify-between">
           <div>
             <h2 id="operations-title" className="text-sm font-semibold text-foreground">Live operations</h2>
@@ -290,27 +341,35 @@ export function CommandCenter(props: CommandCenterProps) {
         ) : props.agents === undefined ? (
           <p className="text-sm text-muted-foreground">Loading live agent operations.</p>
         ) : (
-          <ActiveAgentsPanel companyId={props.companyId} title="Active agent runs" emptyMessage="No active or recent agent runs are connected to this company." />
+          <ActiveAgentsPanel
+            companyId={props.companyId}
+            title="Active agent runs"
+            emptyMessage="No active or recent agent runs are connected to this company."
+            cardClassName="ceo-command-center__run-card"
+          />
         )}
-      </section>
+        </section>
 
-      <AgentTopologyCanvas companyId={props.companyId} agents={props.agents} error={props.agentsError} />
+        <div className="ceo-command-center__topology">
+          <AgentTopologyCanvas companyId={props.companyId} agents={props.agents} error={props.agentsError} />
+        </div>
 
-      <PluginSlotOutlet
-        slotTypes={["dashboardWidget"]}
-        context={{ companyId: props.companyId }}
-        className="grid gap-4 md:grid-cols-2"
-        itemClassName="rounded-lg border bg-card p-4 shadow-sm"
-      />
+        <PluginSlotOutlet
+          slotTypes={["dashboardWidget"]}
+          context={{ companyId: props.companyId }}
+          className="grid gap-4 md:grid-cols-2"
+          itemClassName="ceo-command-center__plugin p-4"
+        />
 
-      <AuditFeed
-        activity={props.activity}
-        activityError={props.activityError}
-        agentMap={props.agentMap}
-        userProfileMap={props.userProfileMap}
-        entityNameMap={props.entityNameMap}
-        entityTitleMap={props.entityTitleMap}
-      />
+        <AuditFeed
+          activity={props.activity}
+          activityError={props.activityError}
+          agentMap={props.agentMap}
+          userProfileMap={props.userProfileMap}
+          entityNameMap={props.entityNameMap}
+          entityTitleMap={props.entityTitleMap}
+        />
+      </div>
     </div>
   );
 }
