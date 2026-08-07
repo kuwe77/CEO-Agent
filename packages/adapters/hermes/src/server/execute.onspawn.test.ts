@@ -104,6 +104,17 @@ describe("hermes-local adapter onSpawn forwarding", () => {
     expect(opts.onSpawn).toBe(onSpawn);
   });
 
+  it("passes a configured Hermes profile before the chat command", async () => {
+    const { ctx } = makeCtx({ hermesProfile: "strategy" });
+
+    await execute(ctx as any);
+
+    const mocked = vi.mocked(serverUtils.runChildProcess);
+    const lastCall = mocked.mock.calls[mocked.mock.calls.length - 1];
+    const args = lastCall[2] as string[];
+    expect(args.slice(0, 3)).toEqual(["--profile", "pccompany1strategy", "chat"]);
+  });
+
   it("runChildProcess opts type includes onSpawn", () => {
     // Type-level assertion: if onSpawn were removed from the type,
     // this file would fail to compile. The runtime test above catches

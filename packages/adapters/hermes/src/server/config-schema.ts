@@ -32,6 +32,12 @@ export function getConfigSchema(): AdapterConfigSchema {
         hint: "Usually auto. Set this only when Hermes cannot infer the provider from the model or ~/.hermes/config.yaml.",
       },
       {
+        key: "hermesProfile",
+        label: "Hermes profile",
+        type: "text",
+        hint: "Optional lowercase alphanumeric logical label. Paperclip derives a company-owned host profile from it to isolate config, memory, skills, and sessions. Blank uses the execution environment's default profile.",
+      },
+      {
         key: "timeoutSec",
         label: "Timeout seconds",
         type: "number",

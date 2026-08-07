@@ -22,7 +22,12 @@ import {
 export function buildHermesConfig(
   v: CreateConfigValues,
 ): Record<string, unknown> {
-  const ac: Record<string, unknown> = {};
+  // Schema-driven fields are collected separately by the shared agent form.
+  // Keep them here so create and edit paths persist the same adapter settings
+  // (provider, profile, output mode, and future schema fields).
+  const ac: Record<string, unknown> = {
+    ...(v.adapterSchemaValues ?? {}),
+  };
 
   // Model
   if (v.model.trim()) {

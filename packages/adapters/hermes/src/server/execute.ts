@@ -52,6 +52,7 @@ import {
   detectModel,
   resolveProvider,
 } from "./detect-model.js";
+import { resolveCompanyHermesProfile } from "./profile-routing.js";
 
 // ---------------------------------------------------------------------------
 // Config helpers
@@ -342,6 +343,10 @@ export async function execute(
   const graceSec = cfgNumber(config.graceSec) || DEFAULT_GRACE_SEC;
   const maxTurns = cfgNumber(config.maxTurnsPerRun);
   const toolsets = cfgString(config.toolsets) || cfgStringArray(config.enabledToolsets)?.join(",");
+  const hermesProfileLabel = cfgString(config.hermesProfile)?.trim() || undefined;
+  const hermesProfile = hermesProfileLabel
+    ? resolveCompanyHermesProfile(ctx.agent?.companyId ?? "", hermesProfileLabel)
+    : undefined;
   const extraArgs = cfgStringArray(config.extraArgs);
   const persistSession = cfgBoolean(config.persistSession) !== false;
   const worktreeMode = cfgBoolean(config.worktreeMode) === true;
@@ -417,7 +422,13 @@ export async function execute(
   // ── Build command args ─────────────────────────────────────────────────
   // Use -Q (quiet) to get clean output: just response + session_id line
   const useQuiet = cfgBoolean(config.quiet) === true; // default false
-  const args: string[] = ["chat", "-q", prompt];
+  // --profile is a Hermes global flag and must precede the chat subcommand.
+  // The company-derived host profile keeps every specialist isolated from
+  // other companies and from the founder/default profile without mutating
+  // the host's sticky profile.
+  const args: string[] = hermesProfile
+    ? ["--profile", hermesProfile, "chat", "-q", prompt]
+    : ["chat", "-q", prompt];
   if (useQuiet) args.push("-Q");
 
   if (model) {

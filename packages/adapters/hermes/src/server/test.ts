@@ -14,15 +14,71 @@ import type {
 import { execFile } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { promisify } from "node:util";
+import {
+  describeAdapterExecutionTarget,
+  resolveAdapterExecutionTargetCwd,
+  runAdapterExecutionTargetProcess,
+} from "@paperclipai/adapter-utils/execution-target";
 
 import { HERMES_CLI, DEFAULT_MODEL, ADAPTER_TYPE, VALID_PROVIDERS } from "../shared/constants.js";
 import { detectModel, resolveProvider, inferProviderFromModel } from "./detect-model.js";
 import { resolveHermesCommand } from "./execute.js";
+import { resolveCompanyHermesProfile } from "./profile-routing.js";
 
 const execFileAsync = promisify(execFile);
 
 function asString(v: unknown): string | undefined {
   return typeof v === "string" ? v : undefined;
+}
+
+type EnvironmentProbe = (
+  command: string,
+  args: string[],
+  timeoutMs: number,
+) => Promise<{ stdout: string; stderr: string }>;
+
+function createEnvironmentProbe(
+  ctx: AdapterEnvironmentTestContext,
+  config: Record<string, unknown>,
+): { run: EnvironmentProbe; isRemote: boolean; targetLabel: string | null } {
+  const target = ctx.executionTarget ?? null;
+  const isRemote = target?.kind === "remote";
+  const configuredCwd = asString(config.cwd)?.trim() ?? "";
+  const cwd = resolveAdapterExecutionTargetCwd(target, configuredCwd, process.cwd());
+  const configEnv = config.env && typeof config.env === "object" && !Array.isArray(config.env)
+    ? config.env as Record<string, unknown>
+    : {};
+  const env = Object.fromEntries(
+    Object.entries(configEnv).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
+  );
+  const runId = `hermes-envtest-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  if (!isRemote) {
+    return {
+      isRemote: false,
+      targetLabel: null,
+      run: async (command, args, timeoutMs) => execFileAsync(command, args, { timeout: timeoutMs }),
+    };
+  }
+
+  return {
+    isRemote: true,
+    targetLabel: ctx.environmentName ?? describeAdapterExecutionTarget(target),
+    run: async (command, args, timeoutMs) => {
+      const result = await runAdapterExecutionTargetProcess(runId, target, command, args, {
+        cwd,
+        env,
+        timeoutSec: Math.max(1, Math.ceil(timeoutMs / 1000)),
+        graceSec: 5,
+        onLog: async () => undefined,
+      });
+      if (result.timedOut) throw new Error(`${command} probe timed out`);
+      if ((result.exitCode ?? 1) !== 0) {
+        throw new Error(result.stderr.trim() || `${command} probe exited with code ${result.exitCode}`);
+      }
+      return { stdout: result.stdout, stderr: result.stderr };
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -31,14 +87,16 @@ function asString(v: unknown): string | undefined {
 
 async function checkCliInstalled(
   command: string,
+  probe: EnvironmentProbe,
+  isRemote: boolean,
 ): Promise<AdapterEnvironmentCheck | null> {
   try {
     // Try to run the command to see if it exists
-    await execFileAsync(command, ["--version"], { timeout: 10_000 });
+    await probe(command, ["--version"], 10_000);
     return null; // OK — it ran successfully
   } catch (err: unknown) {
     const e = err as NodeJS.ErrnoException;
-    if (e.code === "ENOENT") {
+    if (e.code === "ENOENT" || isRemote) {
       return {
         level: "error",
         message: `Hermes CLI "${command}" not found in PATH`,
@@ -54,11 +112,10 @@ async function checkCliInstalled(
 
 async function checkCliVersion(
   command: string,
+  probe: EnvironmentProbe,
 ): Promise<AdapterEnvironmentCheck | null> {
   try {
-    const { stdout } = await execFileAsync(command, ["--version"], {
-      timeout: 10_000,
-    });
+    const { stdout } = await probe(command, ["--version"], 10_000);
     const version = stdout.trim();
     if (version) {
       return {
@@ -83,11 +140,49 @@ async function checkCliVersion(
   }
 }
 
-async function checkPython(): Promise<AdapterEnvironmentCheck | null> {
+async function checkConfiguredProfile(
+  command: string,
+  companyId: string,
+  config: Record<string, unknown>,
+  probe: EnvironmentProbe,
+): Promise<AdapterEnvironmentCheck | null> {
+  const profileLabel = asString(config.hermesProfile)?.trim();
+  if (!profileLabel) return null;
+
+  let profile: string;
   try {
-    const { stdout } = await execFileAsync("python3", ["--version"], {
-      timeout: 5_000,
-    });
+    profile = resolveCompanyHermesProfile(companyId, profileLabel);
+  } catch (error) {
+    return {
+      level: "error",
+      message: error instanceof Error ? error.message : "Hermes profile label is invalid",
+      hint: "Use a lowercase alphanumeric logical profile label.",
+      code: "hermes_profile_invalid",
+    };
+  }
+
+  try {
+    // `profile show` is read-only and validates the named profile without
+    // changing the host's sticky/default Hermes profile.
+    await probe(command, ["profile", "show", profile], 10_000);
+    return {
+      level: "info",
+      message: `Company-owned Hermes profile for "${profileLabel}" is available`,
+      code: "hermes_profile_available",
+    };
+  } catch {
+    return {
+      level: "error",
+      message: `Company-owned Hermes profile for "${profileLabel}" could not be found or inspected`,
+      hint: `Create host profile "${profile}" on the execution environment, or leave the profile field blank to use the default profile.`,
+      code: "hermes_profile_unavailable",
+    };
+  }
+}
+
+async function checkPython(probe: EnvironmentProbe): Promise<AdapterEnvironmentCheck | null> {
+  try {
+    const { stdout } = await probe("python3", ["--version"], 5_000);
     const version = stdout.trim();
     const match = version.match(/(\d+)\.(\d+)/);
     if (match) {
@@ -135,6 +230,7 @@ function checkModel(
 async function checkApiKeys(
   config: Record<string, unknown>,
   detectedConfig: Awaited<ReturnType<typeof detectModel>> | null,
+  considerHostEnvironment: boolean,
 ): Promise<AdapterEnvironmentCheck | null> {
   // The server resolves secret refs into config.env before calling testEnvironment,
   // so we check config.env first (adapter-configured secrets), then fall back to
@@ -151,6 +247,7 @@ async function checkApiKeys(
   // accurate results for keys that Hermes already knows about.
   const hermesEnvKeys: Record<string, string> = {};
   try {
+    if (!considerHostEnvironment) throw new Error("remote execution target");
     const homeDir = process.env.HOME || process.env.USERPROFILE || "/root";
     const hermesEnvPath = `${homeDir}/.hermes/.env`;
     const content = readFileSync(hermesEnvPath, "utf-8");
@@ -168,8 +265,11 @@ async function checkApiKeys(
     // ~/.hermes/.env may not exist — that's fine
   }
 
-  const has = (key: string): boolean =>
-    !!(resolvedEnv[key] ?? process.env[key] ?? hermesEnvKeys[key]);
+  const has = (key: string): boolean => !!(
+    resolvedEnv[key]
+    ?? (considerHostEnvironment ? process.env[key] : undefined)
+    ?? (considerHostEnvironment ? hermesEnvKeys[key] : undefined)
+  );
 
   const hasAnthropic = has("ANTHROPIC_API_KEY");
   const hasOpenRouter = has("OPENROUTER_API_KEY");
@@ -331,9 +431,18 @@ export async function testEnvironment(
   const config = (ctx.config ?? {}) as Record<string, unknown>;
   const command = resolveHermesCommand(config);
   const checks: AdapterEnvironmentCheck[] = [];
+  const probe = createEnvironmentProbe(ctx, config);
+
+  if (probe.targetLabel) {
+    checks.push({
+      level: "info",
+      message: `Probing inside environment: ${probe.targetLabel}`,
+      code: "hermes_environment_target",
+    });
+  }
 
   // 1. CLI installed?
-  const cliCheck = await checkCliInstalled(command);
+  const cliCheck = await checkCliInstalled(command, probe.run, probe.isRemote);
   if (cliCheck) {
     checks.push(cliCheck);
     if (cliCheck.level === "error") {
@@ -347,30 +456,46 @@ export async function testEnvironment(
   }
 
   // 2. CLI version
-  const versionCheck = await checkCliVersion(command);
+  const versionCheck = await checkCliVersion(command, probe.run);
   if (versionCheck) checks.push(versionCheck);
 
-  // 3. Python available?
-  const pythonCheck = await checkPython();
+  // 3. Explicit specialist profile available?
+  const profileCheck = await checkConfiguredProfile(command, ctx.companyId, config, probe.run);
+  if (profileCheck) {
+    checks.push(profileCheck);
+    if (profileCheck.level === "error") {
+      return {
+        adapterType: ADAPTER_TYPE,
+        status: "fail",
+        checks,
+        testedAt: new Date().toISOString(),
+      };
+    }
+  }
+
+  // 4. Python available?
+  const pythonCheck = await checkPython(probe.run);
   if (pythonCheck) checks.push(pythonCheck);
 
-  // 4. Model config
+  // 5. Model config
   const modelCheck = checkModel(config);
   if (modelCheck) checks.push(modelCheck);
 
-  // 5. Detect Hermes config once for the remaining checks.
+  // 6. Detect Hermes config once for the remaining checks.
   let detectedConfig: Awaited<ReturnType<typeof detectModel>> | null = null;
-  try {
-    detectedConfig = await detectModel();
-  } catch {
-    // Non-fatal
+  if (!probe.isRemote) {
+    try {
+      detectedConfig = await detectModel();
+    } catch {
+      // Non-fatal
+    }
   }
 
-  // 6. API keys (check config.env — server resolves secrets before calling us)
-  const apiKeyCheck = await checkApiKeys(config, detectedConfig);
+  // 7. API keys (check config.env — server resolves secrets before calling us)
+  const apiKeyCheck = await checkApiKeys(config, detectedConfig, !probe.isRemote);
   if (apiKeyCheck) checks.push(apiKeyCheck);
 
-  // 7. Provider/model consistency
+  // 8. Provider/model consistency
   const providerCheck = await checkProviderConsistency(config, detectedConfig);
   if (providerCheck) checks.push(providerCheck);
 

@@ -203,6 +203,7 @@ export function Sidebar() {
             );
           })()}
           <SidebarNavItem to="/dashboard" label="Command Center" icon={LayoutDashboard} liveCount={liveRunCount} />
+          <SidebarNavItem to="/agent-studio" label="Agent Studio" icon={Network} />
           <SidebarNavItem
             to="/inbox"
             label="Inbox"
