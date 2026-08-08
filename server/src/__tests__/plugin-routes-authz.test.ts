@@ -1,6 +1,7 @@
 import express from "express";
 import request from "supertest";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { JsonRpcCallError } from "@paperclipai/plugin-sdk";
 
 const mockRegistry = vi.hoisted(() => ({
   getById: vi.fn(),
@@ -785,6 +786,40 @@ describe.sequential("plugin tool and bridge authz", () => {
         companyId: companyA,
       },
       renderEnvironment: null,
+    });
+  });
+
+  it("preserves a plugin-declared public conflict across the action bridge", async () => {
+    readyPlugin();
+    const call = vi.fn().mockRejectedValue(new JsonRpcCallError({
+      code: -32009,
+      message: "account domain already exists",
+    }));
+    const { app } = await createApp(boardActor(), {}, {
+      bridgeDeps: { workerManager: { call } },
+    });
+
+    const res = await request(app)
+      .post(`/api/plugins/${pluginId}/actions/crm-create-account`)
+      .send({ companyId: companyA, params: { domain: "duplicate.invalid" } });
+
+    expect(res.status).toBe(409);
+    expect(res.body).toMatchObject({
+      code: "ACTION_CONFLICT",
+      message: "account domain already exists",
+    });
+
+    const legacyRes = await request(app)
+      .post(`/api/plugins/${pluginId}/bridge/action`)
+      .send({
+        key: "crm-create-account",
+        companyId: companyA,
+        params: { domain: "duplicate.invalid" },
+      });
+    expect(legacyRes.status).toBe(409);
+    expect(legacyRes.body).toMatchObject({
+      code: "ACTION_CONFLICT",
+      message: "account domain already exists",
     });
   });
 

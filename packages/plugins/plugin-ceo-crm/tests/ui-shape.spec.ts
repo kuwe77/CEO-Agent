@@ -27,6 +27,10 @@ describe("CEO CRM UI", () => {
     expect(source).not.toContain('placeholder="Pipeline ID"');
     expect(source).not.toContain('placeholder="Stage ID"');
     expect(source).toContain("function ScopedCrmPage");
+    expect(source).toContain("runFounderFormMutation(");
+    expect(source).not.toContain("event.currentTarget.reset()");
+    expect(source).toContain('key="widget-heading"');
+    expect(source).toContain('key="widget-status"');
     expect(source.indexOf("if (!companyId)")).toBeLessThan(source.indexOf("<ScopedCrmPage"));
   });
 });

@@ -14,6 +14,21 @@ type CrmRow = { id: string; name?: string; first_name?: string; last_name?: stri
 type PipelineStage = { pipeline_id: string; pipeline_name: string; stage_id: string; stage_name: string; position: number };
 type Section = "Overview" | "Accounts" | "Contacts" | "Deals" | "Activity" | "Evidence";
 
+export function formatCrmOverviewSummary(overview: Overview): string {
+  return `${overview.accounts} accounts · ${overview.contacts} contacts · ${overview.deals} deals · ${overview.evidenceProposals} evidence proposals`;
+}
+
+export async function runFounderFormMutation<T>(
+  action: () => Promise<T>,
+  form: { reset(): void },
+  rotateIdempotencyKey: () => void,
+): Promise<T> {
+  const result = await action();
+  rotateIdempotencyKey();
+  form.reset();
+  return result;
+}
+
 const shell: React.CSSProperties = { minHeight: "100%", background: "var(--ceo-command-stage)", color: "var(--ceo-command-ink)", padding: "calc(var(--spacing) * 6)", fontFamily: "var(--font-sans)" };
 const panel: React.CSSProperties = { background: "var(--ceo-command-surface)", borderColor: "var(--ceo-command-line)", borderStyle: "solid", borderWidth: "thin", borderRadius: "var(--ceo-command-radius)", padding: "calc(var(--spacing) * 5)", boxShadow: "var(--shadow-lg)" };
 const accent: React.CSSProperties = { background: "var(--ceo-command-accent)", color: "var(--ceo-command-panel-text)", border: 0, borderRadius: "var(--radius-lg)", padding: "calc(var(--spacing) * 2.25) calc(var(--spacing) * 3)", cursor: "pointer" };
@@ -47,11 +62,10 @@ function FounderForms({
   const [contactIdempotencyKey, setContactIdempotencyKey] = useState(() => crypto.randomUUID());
   const [dealIdempotencyKey, setDealIdempotencyKey] = useState(() => crypto.randomUUID());
 
-  async function submit(action: () => Promise<unknown>, onSuccess?: () => void) {
+  async function submit(action: () => Promise<unknown>) {
     setSaving(true);
     try {
       await action();
-      onSuccess?.();
       setMessage("Saved to the company CRM.");
       onSaved();
     } catch (error) {
@@ -79,13 +93,13 @@ function FounderForms({
   return <section style={{ ...panel, marginTop: "calc(var(--spacing) * 4.5)" }} aria-label="Founder CRM create forms">
     <h2 key="founder-actions-heading" style={{ marginTop: 0 }}>Founder actions</h2>
     <button key="bootstrap" disabled={saving} style={accent} onClick={() => void submit(() => bootstrap({ companyId }))}>Create default pipeline</button>
-    <form key="account-form" onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); void submit(() => createAccount({ companyId, name: form.get("name"), domain: form.get("domain"), idempotencyKey: accountIdempotencyKey }), () => setAccountIdempotencyKey(crypto.randomUUID())); event.currentTarget.reset(); }} style={formLayout}>
+    <form key="account-form" onSubmit={(event) => { event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement); void submit(() => runFounderFormMutation(() => createAccount({ companyId, name: form.get("name"), domain: form.get("domain"), idempotencyKey: accountIdempotencyKey }), formElement, () => setAccountIdempotencyKey(crypto.randomUUID()))); }} style={formLayout}>
       <strong key="account-label">Create account</strong><input key="account-name" required name="name" aria-label="Account name" placeholder="Account name" /><input key="account-domain" name="domain" aria-label="Account domain" placeholder="Domain (optional)" /><button key="account-submit" disabled={saving} style={accent}>Add account</button>
     </form>
-    <form key="contact-form" onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); void submit(() => createContact({ companyId, accountId: form.get("accountId"), firstName: form.get("firstName"), lastName: form.get("lastName"), email: form.get("email"), title: form.get("title"), idempotencyKey: contactIdempotencyKey }), () => setContactIdempotencyKey(crypto.randomUUID())); event.currentTarget.reset(); }} style={formLayout}>
+    <form key="contact-form" onSubmit={(event) => { event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement); void submit(() => runFounderFormMutation(() => createContact({ companyId, accountId: form.get("accountId"), firstName: form.get("firstName"), lastName: form.get("lastName"), email: form.get("email"), title: form.get("title"), idempotencyKey: contactIdempotencyKey }), formElement, () => setContactIdempotencyKey(crypto.randomUUID()))); }} style={formLayout}>
       <strong key="contact-label">Create contact</strong><input key="contact-first" required name="firstName" aria-label="Contact first name" placeholder="First name" /><input key="contact-last" name="lastName" aria-label="Contact last name" placeholder="Last name" /><input key="contact-email" name="email" type="email" aria-label="Contact email" placeholder="Email" /><select key="contact-account" name="accountId" aria-label="Contact account">{renderAccountOptions("no-contact-account")}</select><input key="contact-title" name="title" aria-label="Contact title" placeholder="Title (optional)" /><button key="contact-submit" disabled={saving} style={accent}>Add contact</button>
     </form>
-    <form key="deal-form" onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); const [pipelineId, stageId] = String(form.get("pipelineStage") ?? "").split(":"); void submit(() => createDeal({ companyId, name: form.get("name"), accountId: form.get("accountId"), pipelineId, stageId, amount: form.get("amount"), currency: form.get("currency"), idempotencyKey: dealIdempotencyKey }), () => setDealIdempotencyKey(crypto.randomUUID())); event.currentTarget.reset(); }} style={formLayout}>
+    <form key="deal-form" onSubmit={(event) => { event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement); const [pipelineId, stageId] = String(form.get("pipelineStage") ?? "").split(":"); void submit(() => runFounderFormMutation(() => createDeal({ companyId, name: form.get("name"), accountId: form.get("accountId"), pipelineId, stageId, amount: form.get("amount"), currency: form.get("currency"), idempotencyKey: dealIdempotencyKey }), formElement, () => setDealIdempotencyKey(crypto.randomUUID()))); }} style={formLayout}>
       <strong key="deal-label">Create deal</strong><input key="deal-name" required name="name" aria-label="Deal name" placeholder="Deal name" /><select key="deal-account" name="accountId" aria-label="Deal account">{renderAccountOptions("no-deal-account")}</select><select key="deal-stage" required name="pipelineStage" aria-label="Deal pipeline stage">{renderPipelineOptions()}</select><input key="deal-amount" name="amount" type="number" min="0" step="0.01" aria-label="Deal amount" placeholder="Amount" /><input key="deal-currency" name="currency" defaultValue="USD" maxLength={3} aria-label="Deal currency" /><button key="deal-submit" disabled={saving || pipelines.length === 0} style={accent}>Add deal</button>
       {pipelines.length === 0 ? <small key="deal-help">Create the default pipeline before adding a deal.</small> : null}
     </form>
@@ -160,7 +174,7 @@ export function CrmSidebarLink(_props: PluginSidebarProps) {
 
 function ScopedCrmDashboardWidget({ companyId }: { companyId: string }) {
   const overview = usePluginData<Overview>("crm-overview", { companyId });
-  return <section style={panel} aria-label="CRM overview dashboard widget"><h2 style={{ marginTop: 0 }}>CRM overview</h2><StatusView {...overview} emptyMessage="No CRM records yet." content={overview.data ? <p key="widget-data">{overview.data.accounts} accounts · {overview.data.contacts} contacts · {overview.data.deals} deals · {overview.data.evidenceProposals} evidence proposals</p> : null} /></section>;
+  return <section style={panel} aria-label="CRM overview dashboard widget"><h2 key="widget-heading" style={{ marginTop: 0 }}>CRM overview</h2><StatusView key="widget-status" {...overview} emptyMessage="No CRM records yet." content={overview.data ? <p>{formatCrmOverviewSummary(overview.data)}</p> : null} /></section>;
 }
 
 export function CrmDashboardWidget({ context }: PluginWidgetProps) {

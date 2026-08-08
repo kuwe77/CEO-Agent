@@ -52,6 +52,7 @@ export function classifyCrmPublicError(error: unknown) {
   if (!(error instanceof Error)) return null;
   const message = error.message;
   if (/company.*(?:mismatch|must match)/i.test(message)) return { status: 403, message };
+  if (/host-authorized company scope is required|founder actions require an authenticated board user/i.test(message)) return { status: 403, message };
   if (/not found$/i.test(message)) return { status: 404, message };
   if (/in progress|idempotency key was already used|already exists/i.test(message)) return { status: 409, message };
   if (/required|invalid|does not belong|must be|unsupported entity kind/i.test(message)) return { status: 400, message };

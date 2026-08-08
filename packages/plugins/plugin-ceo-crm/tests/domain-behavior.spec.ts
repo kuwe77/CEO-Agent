@@ -32,6 +32,8 @@ describe("CEO CRM domain behavior", () => {
   it("classifies expected tenant and validation denials without turning them into gateway errors", () => {
     expect(classifyCrmPublicError(new Error("account not found"))).toEqual({ status: 404, message: "account not found" });
     expect(classifyCrmPublicError(new Error("company scope mismatch"))).toEqual({ status: 403, message: "company scope mismatch" });
+    expect(classifyCrmPublicError(new Error("A host-authorized company scope is required"))).toEqual({ status: 403, message: "A host-authorized company scope is required" });
+    expect(classifyCrmPublicError(new Error("CRM founder actions require an authenticated board user"))).toEqual({ status: 403, message: "CRM founder actions require an authenticated board user" });
     expect(classifyCrmPublicError(new Error("name is required"))).toEqual({ status: 400, message: "name is required" });
     expect(classifyCrmPublicError(new Error("account domain already exists"))).toEqual({ status: 409, message: "account domain already exists" });
     expect(classifyCrmPublicError(new Error("database unavailable"))).toBeNull();

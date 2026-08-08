@@ -265,6 +265,12 @@ export const PLUGIN_RPC_ERROR_CODES = {
    * `multiCompanyConfig: true` on its definition.
    */
   CROSS_TENANT_CONFIG: -32006,
+  /** A plugin action rejected public input as invalid. */
+  ACTION_BAD_REQUEST: -32007,
+  /** A plugin action could not find a company-scoped resource. */
+  ACTION_NOT_FOUND: -32008,
+  /** A plugin action encountered a public idempotency or uniqueness conflict. */
+  ACTION_CONFLICT: -32009,
   /** A catch-all for errors that do not fit other categories. */
   UNKNOWN: -32099,
 } as const;

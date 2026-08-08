@@ -1299,6 +1299,24 @@ export function pluginRoutes(
             message: err.message,
             details: err.data,
           };
+        case PLUGIN_RPC_ERROR_CODES.ACTION_BAD_REQUEST:
+          return {
+            code: "ACTION_BAD_REQUEST",
+            message: err.message,
+            details: err.data,
+          };
+        case PLUGIN_RPC_ERROR_CODES.ACTION_NOT_FOUND:
+          return {
+            code: "ACTION_NOT_FOUND",
+            message: err.message,
+            details: err.data,
+          };
+        case PLUGIN_RPC_ERROR_CODES.ACTION_CONFLICT:
+          return {
+            code: "ACTION_CONFLICT",
+            message: err.message,
+            details: err.data,
+          };
         default:
           return {
             code: "UNKNOWN",
@@ -1322,6 +1340,17 @@ export function pluginRoutes(
       code: "UNKNOWN",
       message,
     };
+  }
+
+  function actionBridgeHttpStatus(error: PluginBridgeErrorResponse): number {
+    switch (error.code) {
+      case "ACTION_BAD_REQUEST": return 400;
+      case "ACTION_NOT_FOUND": return 404;
+      case "ACTION_CONFLICT": return 409;
+      case "CAPABILITY_DENIED":
+      case "INVOCATION_SCOPE_DENIED": return 403;
+      default: return 502;
+    }
   }
 
   function attachPluginBridgeErrorContext(
@@ -1534,7 +1563,7 @@ export function pluginRoutes(
         bridgeMethod: "performAction",
         actionKey: body.key,
       });
-      res.status(502).json(bridgeError);
+      res.status(actionBridgeHttpStatus(bridgeError)).json(bridgeError);
     }
   });
 
@@ -1718,7 +1747,7 @@ export function pluginRoutes(
         bridgeMethod: "performAction",
         actionKey: key,
       });
-      res.status(502).json(bridgeError);
+      res.status(actionBridgeHttpStatus(bridgeError)).json(bridgeError);
     }
   });
 

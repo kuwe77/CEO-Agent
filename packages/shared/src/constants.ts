@@ -1642,6 +1642,9 @@ export const PLUGIN_BRIDGE_ERROR_CODES = [
   "INVOCATION_SCOPE_DENIED",
   "WORKER_ERROR",
   "TIMEOUT",
+  "ACTION_BAD_REQUEST",
+  "ACTION_NOT_FOUND",
+  "ACTION_CONFLICT",
   "UNKNOWN",
 ] as const;
 export type PluginBridgeErrorCode = (typeof PLUGIN_BRIDGE_ERROR_CODES)[number];

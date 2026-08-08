@@ -1,5 +1,6 @@
 import {
   definePlugin,
+  PLUGIN_RPC_ERROR_CODES,
   runWorker,
   type PluginApiRequestInput,
   type PluginContext,
@@ -48,6 +49,32 @@ function actionCompany(params: Record<string, unknown>, context: PluginPerformAc
   return requireCompanyScope(params.companyId, context.companyId);
 }
 
+function publicActionErrorCode(status: number): number {
+  if (status === 400) return PLUGIN_RPC_ERROR_CODES.ACTION_BAD_REQUEST;
+  if (status === 404) return PLUGIN_RPC_ERROR_CODES.ACTION_NOT_FOUND;
+  if (status === 409) return PLUGIN_RPC_ERROR_CODES.ACTION_CONFLICT;
+  return PLUGIN_RPC_ERROR_CODES.INVOCATION_SCOPE_DENIED;
+}
+
+export async function performCrmAction<T>(ctx: PluginContext, operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    const publicError = classifyCrmPublicError(error);
+    if (!publicError) {
+      ctx.logger.error("CRM action failed with an internal error", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw Object.assign(new Error("CRM action failed"), {
+        code: PLUGIN_RPC_ERROR_CODES.WORKER_ERROR,
+      });
+    }
+    throw Object.assign(new Error(publicError.message), {
+      code: publicActionErrorCode(publicError.status),
+    });
+  }
+}
+
 function apiActor(input: PluginApiRequestInput): MutationActor {
   return input.actor.actorType === "agent"
     ? { type: "agent", id: input.actor.agentId ?? input.actor.actorId, agentId: input.actor.agentId ?? input.actor.actorId, runId: input.actor.runId ?? null }
@@ -89,11 +116,11 @@ const plugin = definePlugin({
     ctx.data.register("crm-activities", async (params) => listSurface(ctx, text(params.companyId, "companyId"), "activities"));
     ctx.data.register("crm-evidence", async (params) => listSurface(ctx, text(params.companyId, "companyId"), "evidence"));
 
-    ctx.actions.register("crm-bootstrap", async (params, actionContext) => bootstrapDefaultPipeline(ctx, { companyId: actionCompany(params, actionContext), actor: actionActor(actionContext) }));
-    ctx.actions.register("crm-create-account", async (params, actionContext) => createAccount(ctx, { companyId: actionCompany(params, actionContext), name: params.name, domain: params.domain, idempotencyKey: params.idempotencyKey, actor: actionActor(actionContext) }));
-    ctx.actions.register("crm-create-contact", async (params, actionContext) => createContact(ctx, { companyId: actionCompany(params, actionContext), accountId: params.accountId, firstName: params.firstName, lastName: params.lastName, email: params.email, title: params.title, idempotencyKey: params.idempotencyKey, actor: actionActor(actionContext) }));
-    ctx.actions.register("crm-create-deal", async (params, actionContext) => createDeal(ctx, { companyId: actionCompany(params, actionContext), accountId: params.accountId, pipelineId: params.pipelineId, stageId: params.stageId, name: params.name, amount: params.amount, currency: params.currency, idempotencyKey: params.idempotencyKey, actor: actionActor(actionContext) }));
-    ctx.actions.register("crm-record-note", async (params, actionContext) => recordInternalNote(ctx, { companyId: actionCompany(params, actionContext), entityKind: params.entityKind, entityId: params.entityId, body: params.body, idempotencyKey: params.idempotencyKey, actor: actionActor(actionContext) }));
+    ctx.actions.register("crm-bootstrap", async (params, actionContext) => performCrmAction(ctx, () => bootstrapDefaultPipeline(ctx, { companyId: actionCompany(params, actionContext), actor: actionActor(actionContext) })));
+    ctx.actions.register("crm-create-account", async (params, actionContext) => performCrmAction(ctx, () => createAccount(ctx, { companyId: actionCompany(params, actionContext), name: params.name, domain: params.domain, idempotencyKey: params.idempotencyKey, actor: actionActor(actionContext) })));
+    ctx.actions.register("crm-create-contact", async (params, actionContext) => performCrmAction(ctx, () => createContact(ctx, { companyId: actionCompany(params, actionContext), accountId: params.accountId, firstName: params.firstName, lastName: params.lastName, email: params.email, title: params.title, idempotencyKey: params.idempotencyKey, actor: actionActor(actionContext) })));
+    ctx.actions.register("crm-create-deal", async (params, actionContext) => performCrmAction(ctx, () => createDeal(ctx, { companyId: actionCompany(params, actionContext), accountId: params.accountId, pipelineId: params.pipelineId, stageId: params.stageId, name: params.name, amount: params.amount, currency: params.currency, idempotencyKey: params.idempotencyKey, actor: actionActor(actionContext) })));
+    ctx.actions.register("crm-record-note", async (params, actionContext) => performCrmAction(ctx, () => recordInternalNote(ctx, { companyId: actionCompany(params, actionContext), entityKind: params.entityKind, entityId: params.entityId, body: params.body, idempotencyKey: params.idempotencyKey, actor: actionActor(actionContext) })));
 
     ctx.tools.register("crm_search", toolDeclaration("crm_search"), async (params, runContext): Promise<ToolResult> => {
       const input = bodyObject(params);
