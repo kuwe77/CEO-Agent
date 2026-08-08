@@ -1440,13 +1440,14 @@ export interface PluginIssuesClient {
     originKind?: PluginIssueOriginKind;
     originId?: string | null;
     originRunId?: string | null;
+    createOrGetByOrigin?: boolean;
     blockedByIssueIds?: string[];
     labelIds?: string[];
     executionWorkspaceId?: string | null;
     executionWorkspacePreference?: string | null;
     executionWorkspaceSettings?: Record<string, unknown> | null;
     actor?: PluginIssueMutationActor;
-  }): Promise<Issue>;
+  }): Promise<Issue & { createdByRequest?: boolean }>;
   update(
     issueId: string,
     patch: Partial<Pick<

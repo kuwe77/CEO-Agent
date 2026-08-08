@@ -1449,6 +1449,7 @@ export interface WorkerToHostMethods {
       originKind?: string | null;
       originId?: string | null;
       originRunId?: string | null;
+      createOrGetByOrigin?: boolean;
       blockedByIssueIds?: string[];
       labelIds?: string[];
       executionWorkspaceId?: string | null;
@@ -1458,7 +1459,7 @@ export interface WorkerToHostMethods {
       actorUserId?: string | null;
       actorRunId?: string | null;
     },
-    result: Issue,
+    result: Issue & { createdByRequest?: boolean },
   ];
   "issues.update": [
     params: {

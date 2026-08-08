@@ -1831,22 +1831,70 @@ export function buildHostServices(
       async create(params) {
         const companyId = ensureCompanyId(params.companyId);
         await ensurePluginAvailableForCompany(companyId);
-        const { actorAgentId, actorUserId, actorRunId, originKind, surfaceVisibility, ...issueInput } = params;
+        const {
+          actorAgentId,
+          actorUserId,
+          actorRunId,
+          originKind,
+          surfaceVisibility,
+          createOrGetByOrigin,
+          ...issueInput
+        } = params;
         const normalizedOriginKind = normalizePluginOriginKind(
           surfaceVisibility === "plugin_operation" && !originKind
             ? pluginOperationIssueOriginKind(pluginKey)
             : originKind,
         );
-        const issue = (await issues.create(companyId, {
-          ...(issueInput as any),
-          originKind: normalizedOriginKind,
-          originId: params.originId ?? null,
-          originRunId: params.originRunId ?? actorRunId ?? null,
-          createdByAgentId: actorAgentId ?? null,
-          createdByUserId: actorUserId ?? null,
-          actorResponsibleUserId: actorUserId ?? null,
-          trustExplicitResponsibleUserId: true,
-        })) as Issue;
+        const originId = params.originId ?? null;
+        const crmFollowupOrigin = "plugin:paperclipai.plugin-ceo-crm:follow_up";
+        const crmFollowupConstraint = "issues_crm_followup_origin_uq";
+        if (createOrGetByOrigin && (normalizedOriginKind !== crmFollowupOrigin || !originId)) {
+          throw new Error("createOrGetByOrigin requires the unique CEO CRM follow-up origin and a non-empty originId");
+        }
+        const findExistingByOrigin = async () => {
+          if (!originId) return null;
+          const existing = await issues.list(companyId, {
+            originKind: normalizedOriginKind,
+            originId,
+            limit: 1,
+          } as any) as Issue[];
+          return existing[0] ?? null;
+        };
+        if (createOrGetByOrigin) {
+          const existing = await findExistingByOrigin();
+          if (existing) return { ...existing, createdByRequest: false };
+        }
+
+        let issue: Issue;
+        try {
+          issue = (await issues.create(companyId, {
+            ...(issueInput as any),
+            originKind: normalizedOriginKind,
+            originId,
+            originRunId: params.originRunId ?? actorRunId ?? null,
+            createdByAgentId: actorAgentId ?? null,
+            createdByUserId: actorUserId ?? null,
+            actorResponsibleUserId: actorUserId ?? null,
+            trustExplicitResponsibleUserId: true,
+          })) as Issue;
+        } catch (error) {
+          if (createOrGetByOrigin) {
+            const seen = new Set<unknown>();
+            let current: unknown = error;
+            while (typeof current === "object" && current !== null && !seen.has(current)) {
+              seen.add(current);
+              const maybe = current as { code?: string; constraint?: string; constraint_name?: string; cause?: unknown };
+              const constraint = maybe.constraint ?? maybe.constraint_name;
+              if (maybe.code === "23505" && constraint === crmFollowupConstraint) {
+                const existing = await findExistingByOrigin();
+                if (existing) return { ...existing, createdByRequest: false };
+                break;
+              }
+              current = maybe.cause;
+            }
+          }
+          throw error;
+        }
         await logPluginActivity({
           companyId,
           action: "issue.created",
@@ -1862,7 +1910,7 @@ export function buildHostServices(
             blockedByIssueIds: params.blockedByIssueIds ?? [],
           },
         });
-        return issue;
+        return createOrGetByOrigin ? { ...issue, createdByRequest: true } : issue;
       },
       async update(params) {
         const companyId = ensureCompanyId(params.companyId);

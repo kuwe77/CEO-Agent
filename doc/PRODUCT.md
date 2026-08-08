@@ -111,6 +111,10 @@ See [SPEC.md](./SPEC.md) for the full technical specification and [TASKS.md](./T
 
 Paperclip’s core identity is a **control plane for autonomous AI companies**, centered on **companies, org charts, goals, issues/comments, heartbeats, budgets, approvals, and board governance**. The public docs are also explicit about the current boundaries: **tasks/comments are the built-in communication model**, Paperclip is **not a chatbot**, and it is **not a code review tool**. The roadmap already points toward **easier onboarding, cloud agents, easier agent configuration, plugins, better docs, and ClipMart/ClipHub-style reusable companies/templates**.
 
+### Plugin business data planes
+
+Optional business domains belong in bounded plugins rather than becoming a second Paperclip control plane. The CEO CRM plugin is the first example: Paperclip Companies remain tenants, Paperclip Issues remain execution source of truth, and the CRM plugin owns only company-scoped customer accounts, contacts, opportunities, evidence proposals, and links back to issue IDs. Agents use governed plugin tools with host-derived company/run context; they do not receive CRM database credentials or a duplicate runtime/auth/task system.
+
 ## What Paperclip should do vs. not do
 
 **Do**

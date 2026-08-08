@@ -282,6 +282,34 @@ describeEmbeddedPostgres("plugin orchestration APIs", () => {
     );
   });
 
+  it("atomically creates or returns one CRM follow-up issue under concurrent origin retries", async () => {
+    const { companyId } = await seedCompanyAndAgent();
+    const services = buildHostServices(db, "plugin-record-id", "paperclipai.plugin-ceo-crm", createEventBusStub());
+    const input = {
+      companyId,
+      title: "Research CRM contact",
+      originKind: "plugin:paperclipai.plugin-ceo-crm:follow_up",
+      originId: "crm-follow-up-concurrent",
+      createOrGetByOrigin: true,
+    };
+
+    const results = await Promise.all(
+      Array.from({ length: 8 }, () => (services.issues.create as any)(input)),
+    );
+    expect(new Set(results.map((issue: { id: string }) => issue.id)).size).toBe(1);
+    expect(results.filter((issue: { createdByRequest?: boolean }) => issue.createdByRequest === true)).toHaveLength(1);
+
+    const stored = await db
+      .select({ id: issues.id })
+      .from(issues)
+      .where(and(
+        eq(issues.companyId, companyId),
+        eq(issues.originKind, input.originKind),
+        eq(issues.originId, input.originId),
+      ));
+    expect(stored).toHaveLength(1);
+  });
+
   it("enforces plugin origin namespaces", async () => {
     const { companyId } = await seedCompanyAndAgent();
     const services = buildHostServices(db, "plugin-record-id", "paperclip.missions", createEventBusStub());

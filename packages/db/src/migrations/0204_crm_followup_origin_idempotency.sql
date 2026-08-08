@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "issues_crm_followup_origin_uq" ON "issues" USING btree ("company_id","origin_kind","origin_id") WHERE "issues"."origin_kind" = 'plugin:paperclipai.plugin-ceo-crm:follow_up' and "issues"."origin_id" is not null;
