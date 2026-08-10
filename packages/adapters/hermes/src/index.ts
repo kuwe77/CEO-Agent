@@ -78,7 +78,8 @@ tools, persistent memory, session persistence, skills, and MCP support.
 
 - Python 3.10+ installed
 - Hermes Agent installed: \`pip install hermes-agent\`
-- At least one LLM API key configured in ~/.hermes/.env
+- At least one provider credential configured through \`hermes auth\` (OAuth)
+  or an API key in the selected profile/environment
 
 ## Core Configuration
 
@@ -94,6 +95,7 @@ tools, persistent memory, session persistence, skills, and MCP support.
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | toolsets | string | (all) | Comma-separated toolsets to enable (e.g. "terminal,file,web") |
+| bypassDangerousCommandApprovals | boolean | false | Pass \`--yolo\` only for an explicitly approved, separately sandboxed runtime. Keep false for host-local agents. |
 
 ## Session & Workspace
 

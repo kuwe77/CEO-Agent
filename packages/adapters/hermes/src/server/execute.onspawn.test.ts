@@ -115,6 +115,28 @@ describe("hermes-local adapter onSpawn forwarding", () => {
     expect(args.slice(0, 3)).toEqual(["--profile", "pccompany1strategy", "chat"]);
   });
 
+  it("does not bypass dangerous-command approvals by default", async () => {
+    const { ctx } = makeCtx();
+
+    await execute(ctx as any);
+
+    const mocked = vi.mocked(serverUtils.runChildProcess);
+    const lastCall = mocked.mock.calls[mocked.mock.calls.length - 1];
+    const args = lastCall[2] as string[];
+    expect(args).not.toContain("--yolo");
+  });
+
+  it("passes approval bypass only when explicitly configured", async () => {
+    const { ctx } = makeCtx({ bypassDangerousCommandApprovals: true });
+
+    await execute(ctx as any);
+
+    const mocked = vi.mocked(serverUtils.runChildProcess);
+    const lastCall = mocked.mock.calls[mocked.mock.calls.length - 1];
+    const args = lastCall[2] as string[];
+    expect(args).toContain("--yolo");
+  });
+
   it("runChildProcess opts type includes onSpawn", () => {
     // Type-level assertion: if onSpawn were removed from the type,
     // this file would fail to compile. The runtime test above catches

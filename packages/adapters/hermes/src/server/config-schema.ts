@@ -98,6 +98,13 @@ export function getConfigSchema(): AdapterConfigSchema {
         hint: "Pass Hermes --verbose.",
       },
       {
+        key: "bypassDangerousCommandApprovals",
+        label: "Bypass dangerous-command approvals",
+        type: "toggle",
+        default: false,
+        hint: "Pass Hermes --yolo only for an explicitly approved, separately sandboxed execution environment. Keep disabled for host-local agents.",
+      },
+      {
         key: "paperclipApiUrl",
         label: "Paperclip API URL",
         type: "text",

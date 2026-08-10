@@ -280,6 +280,8 @@ export interface AdapterSkillContext {
   companyId: string;
   adapterType: string;
   config: Record<string, unknown>;
+  /** Execution target backing this agent's configured environment. */
+  executionTargetKind?: AdapterExecutionTarget["kind"] | null;
 }
 
 export interface AdapterEnvironmentTestContext {

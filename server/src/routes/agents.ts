@@ -1911,11 +1911,15 @@ export function agentRoutes(
       runtimeConfig,
       { materializeMissing: false },
     );
+    const skillEnvironment = agent.defaultEnvironmentId
+      ? await environmentsSvc.getById(agent.defaultEnvironmentId)
+      : null;
     const snapshot = await adapter.listSkills({
       agentId: agent.id,
       companyId: agent.companyId,
       adapterType: agent.adapterType,
       config: runtimeSkillConfig,
+      executionTargetKind: skillEnvironment && skillEnvironment.driver !== "local" ? "remote" : "local",
     });
     res.json(snapshot);
   });
@@ -1974,12 +1978,16 @@ export function agentRoutes(
         ...runtimeConfig,
         paperclipRuntimeSkills: runtimeSkillEntries,
       };
+      const skillEnvironment = updated.defaultEnvironmentId
+        ? await environmentsSvc.getById(updated.defaultEnvironmentId)
+        : null;
       const snapshot = adapter?.syncSkills
         ? await adapter.syncSkills({
             agentId: updated.id,
             companyId: updated.companyId,
             adapterType: updated.adapterType,
             config: runtimeSkillConfig,
+            executionTargetKind: skillEnvironment && skillEnvironment.driver !== "local" ? "remote" : "local",
           }, desiredSkills)
         : adapter?.listSkills
           ? await adapter.listSkills({
@@ -1987,6 +1995,7 @@ export function agentRoutes(
               companyId: updated.companyId,
               adapterType: updated.adapterType,
               config: runtimeSkillConfig,
+              executionTargetKind: skillEnvironment && skillEnvironment.driver !== "local" ? "remote" : "local",
             })
           : buildUnsupportedSkillSnapshot(updated.adapterType, desiredSkillEntries);
 

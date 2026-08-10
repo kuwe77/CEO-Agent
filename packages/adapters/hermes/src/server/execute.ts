@@ -457,12 +457,11 @@ export async function execute(
   // Requires hermes-agent >= PR #3255 (feat/session-source-tag).
   args.push("--source", "tool");
 
-  // Bypass Hermes dangerous-command approval prompts.
-  // Paperclip agents run as non-interactive subprocesses with no TTY,
-  // so approval prompts would always timeout and deny legitimate commands
-  // (curl, python3 -c, etc.). Agents operate in a sandbox — the approval
-  // system is designed for human-attended interactive sessions.
-  args.push("--yolo");
+  // Preserve Hermes dangerous-command approval controls for host-local agents.
+  // Only a separately approved and sandboxed environment should opt in.
+  if (cfgBoolean(config.bypassDangerousCommandApprovals) === true) {
+    args.push("--yolo");
+  }
 
   if (persistSession && prevSessionId) {
     args.push("--resume", prevSessionId);

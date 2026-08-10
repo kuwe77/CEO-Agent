@@ -12,6 +12,8 @@ import {
 } from "@paperclipai/adapter-utils/server-utils";
 import { fileURLToPath } from "node:url";
 
+import { resolveCompanyHermesProfile } from "./profile-routing.js";
+
 const __moduleDir = path.dirname(fileURLToPath(import.meta.url));
 
 // ---------------------------------------------------------------------------
@@ -29,6 +31,18 @@ function resolveHermesHome(config: Record<string, unknown>): string {
       : {};
   const configuredHome = asString(env.HOME);
   return configuredHome ? path.resolve(configuredHome) : os.homedir();
+}
+
+function resolveHermesSkillsHome(
+  companyId: string,
+  config: Record<string, unknown>,
+): string {
+  const home = resolveHermesHome(config);
+  const profileLabel = asString(config.hermesProfile);
+  if (!profileLabel) return path.join(home, ".hermes", "skills");
+
+  const profile = resolveCompanyHermesProfile(companyId, profileLabel);
+  return path.join(home, ".hermes", "profiles", profile, "skills");
 }
 
 interface SkillFrontmatter {
@@ -126,9 +140,14 @@ async function buildSkillEntry(
 // Public API
 // ---------------------------------------------------------------------------
 
-async function buildHermesSkillSnapshot(config: Record<string, unknown>): Promise<AdapterSkillSnapshot> {
-  const home = resolveHermesHome(config);
-  const hermesSkillsHome = path.join(home, ".hermes", "skills");
+async function buildHermesSkillSnapshot(ctx: AdapterSkillContext): Promise<AdapterSkillSnapshot> {
+  const config = ctx.config;
+  const remoteDiscoveryUnsupported = Boolean(
+    ctx.executionTargetKind && ctx.executionTargetKind !== "local",
+  );
+  const hermesSkillsHome = remoteDiscoveryUnsupported
+    ? null
+    : resolveHermesSkillsHome(ctx.companyId, config);
 
   // 1. Scan Paperclip-managed skills (bundled with the adapter)
   const paperclipEntries = await readPaperclipRuntimeSkillEntries(config, __moduleDir);
@@ -137,12 +156,16 @@ async function buildHermesSkillSnapshot(config: Record<string, unknown>): Promis
   const availableByKey = new Map(paperclipEntries.map((e) => [e.key, e]));
 
   // 2. Scan Hermes's own skills from ~/.hermes/skills/
-  const hermesSkillEntries = await scanHermesSkills(hermesSkillsHome);
+  const hermesSkillEntries = hermesSkillsHome
+    ? await scanHermesSkills(hermesSkillsHome)
+    : [];
   const hermesKeys = new Set(hermesSkillEntries.map((e) => e.key));
 
   // 3. Merge: Paperclip skills first (ephemeral), then Hermes skills
   const entries: AdapterSkillEntry[] = [];
-  const warnings: string[] = [];
+  const warnings: string[] = remoteDiscoveryUnsupported
+    ? ["Remote Hermes skill discovery is unsupported; controller profile skills were not inspected."]
+    : [];
 
   // Paperclip-managed skills
   for (const entry of paperclipEntries) {
@@ -173,6 +196,7 @@ async function buildHermesSkillSnapshot(config: Record<string, unknown>): Promis
 
   // Check for desired skills that don't exist
   for (const desiredSkill of desiredSkills) {
+    if (remoteDiscoveryUnsupported && !availableByKey.has(desiredSkill)) continue;
     if (availableByKey.has(desiredSkill) || hermesKeys.has(desiredSkill)) continue;
     warnings.push(
       `Desired skill "${desiredSkill}" is not available in Paperclip or Hermes skills.`,
@@ -206,7 +230,7 @@ async function buildHermesSkillSnapshot(config: Record<string, unknown>): Promis
 export async function listHermesSkills(
   ctx: AdapterSkillContext,
 ): Promise<AdapterSkillSnapshot> {
-  return buildHermesSkillSnapshot(ctx.config);
+  return buildHermesSkillSnapshot(ctx);
 }
 
 export async function syncHermesSkills(
@@ -215,7 +239,7 @@ export async function syncHermesSkills(
 ): Promise<AdapterSkillSnapshot> {
   // Hermes manages its own skill loading — sync is a no-op.
   // Return the current snapshot so the UI stays in sync.
-  return buildHermesSkillSnapshot(ctx.config);
+  return buildHermesSkillSnapshot(ctx);
 }
 
 export function resolveHermesDesiredSkillNames(

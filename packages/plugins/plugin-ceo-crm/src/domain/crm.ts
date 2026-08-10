@@ -42,6 +42,23 @@ function normalizeDomain(value: string | null) {
   return value ? value.toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "") : null;
 }
 
+function canonicalJson(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalJson);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, entryValue]) => entryValue !== undefined)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, entryValue]) => [key, canonicalJson(entryValue)]),
+    );
+  }
+  return value;
+}
+
+function jsonValuesEqual(left: unknown, right: unknown) {
+  return JSON.stringify(canonicalJson(left)) === JSON.stringify(canonicalJson(right));
+}
+
 export function requireCompanyScope(requestedCompanyId: unknown, hostCompanyId: string) {
   const requested = optionalText(requestedCompanyId);
   if (requested && requested !== hostCompanyId) throw new Error("companyId must match the authenticated host company scope");
@@ -346,7 +363,7 @@ export async function proposeEvidence(ctx: CrmContext, input: { companyId: strin
   );
   const evidence = rows[0];
   if (!evidence) throw new Error("Failed to resolve the idempotent CRM evidence proposal");
-  if (evidence.entity_kind !== entityKind || evidence.entity_id !== entityId || evidence.field_name !== field || evidence.source !== source || JSON.stringify(evidence.proposed_value) !== JSON.stringify(input.value)) throw new Error("idempotencyKey was already used for a different evidence payload");
+  if (evidence.entity_kind !== entityKind || evidence.entity_id !== entityId || evidence.field_name !== field || evidence.source !== source || !jsonValuesEqual(evidence.proposed_value, input.value)) throw new Error("idempotencyKey was already used for a different evidence payload");
   await recordMutation(ctx, { companyId: input.companyId, entityType: "crm_evidence", entityId: evidence.id, eventType: "evidence.proposed", actor: input.actor, payload: { entityKind, entityId, field }, idempotencyKey: `evidence.proposed:${idempotencyKey}` });
   return { id: evidence.id, companyId: input.companyId, status: "proposed" as const, entityKind, entityId };
 }

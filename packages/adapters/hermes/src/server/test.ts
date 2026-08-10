@@ -31,7 +31,7 @@ function asString(v: unknown): string | undefined {
   return typeof v === "string" ? v : undefined;
 }
 
-type EnvironmentProbe = (
+export type EnvironmentProbe = (
   command: string,
   args: string[],
   timeoutMs: number,
@@ -180,24 +180,59 @@ async function checkConfiguredProfile(
   }
 }
 
-async function checkPython(probe: EnvironmentProbe): Promise<AdapterEnvironmentCheck | null> {
+function evaluatePythonVersion(
+  version: string,
+  source: "hermes" | "path",
+): AdapterEnvironmentCheck | null {
+  const match = version.match(/(\d+)\.(\d+)(?:\.(\d+))?/);
+  if (!match) return null;
+
+  const major = parseInt(match[1], 10);
+  const minor = parseInt(match[2], 10);
+  const normalizedVersion = match[0];
+  if (major < 3 || (major === 3 && minor < 10)) {
+    return {
+      level: "error",
+      message: `Python ${normalizedVersion} found — Hermes requires Python 3.10+`,
+      hint: source === "hermes"
+        ? "Reinstall or upgrade the Hermes runtime to use Python 3.10 or later"
+        : "Upgrade Python to 3.10 or later",
+      code: "hermes_python_old",
+    };
+  }
+
+  return source === "hermes"
+    ? {
+        level: "info",
+        message: `Hermes runtime Python: ${normalizedVersion}`,
+        code: "hermes_python_runtime",
+      }
+    : null;
+}
+
+export async function checkHermesPythonRuntime(
+  command: string,
+  probe: EnvironmentProbe,
+): Promise<AdapterEnvironmentCheck | null> {
+  try {
+    const { stdout, stderr } = await probe(command, ["--version"], 10_000);
+    const versionOutput = `${stdout}\n${stderr}`;
+    const runtimePython = versionOutput.match(/^Python:\s*(\d+\.\d+(?:\.\d+)?)/im)?.[1];
+    if (runtimePython) return evaluatePythonVersion(runtimePython, "hermes");
+    return {
+      level: "warn",
+      message: "Hermes launcher is available, but its Python runtime version is unverified",
+      hint: "Upgrade Hermes or use a launcher that reports a Python: 3.10+ runtime line. Unrelated PATH python3 installations are ignored.",
+      code: "hermes_python_runtime_unverified",
+    };
+  } catch {
+    // CLI installation/version checks report their own diagnostics. Fall back
+    // to PATH python only when the launcher itself cannot run.
+  }
+
   try {
     const { stdout } = await probe("python3", ["--version"], 5_000);
-    const version = stdout.trim();
-    const match = version.match(/(\d+)\.(\d+)/);
-    if (match) {
-      const major = parseInt(match[1], 10);
-      const minor = parseInt(match[2], 10);
-      if (major < 3 || (major === 3 && minor < 10)) {
-        return {
-          level: "error",
-          message: `Python ${version} found — Hermes requires Python 3.10+`,
-          hint: "Upgrade Python to 3.10 or later",
-          code: "hermes_python_old",
-        };
-      }
-    }
-    return null; // OK
+    return evaluatePythonVersion(stdout.trim(), "path");
   } catch {
     return {
       level: "warn",
@@ -205,6 +240,56 @@ async function checkPython(probe: EnvironmentProbe): Promise<AdapterEnvironmentC
       hint: "Hermes Agent requires Python 3.10+. Install it from python.org",
       code: "hermes_python_missing",
     };
+  }
+}
+
+export async function checkHermesAuthPool(
+  command: string,
+  companyId: string,
+  config: Record<string, unknown>,
+  probe: EnvironmentProbe,
+  detectedConfig: { provider?: unknown } = {},
+): Promise<AdapterEnvironmentCheck | null> {
+  const configuredProvider = asString(config.provider)?.trim();
+  const provider = configuredProvider && configuredProvider !== "auto"
+    ? configuredProvider
+    : asString(detectedConfig.provider)?.trim();
+  if (!provider || provider === "auto") return null;
+
+  const profileLabel = asString(config.hermesProfile)?.trim();
+  let args = ["auth", "list"];
+  if (profileLabel) {
+    try {
+      args = [
+        "--profile",
+        resolveCompanyHermesProfile(companyId, profileLabel),
+        "auth",
+        "list",
+      ];
+    } catch {
+      return null;
+    }
+  }
+
+  try {
+    const { stdout } = await probe(command, args, 10_000);
+    const escapedProvider = provider.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const normalizedOutput = stdout.replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "");
+    const countMatch = normalizedOutput.match(
+      new RegExp(`^${escapedProvider}\\s+\\((\\d+)\\s+credentials?\\):`, "im"),
+    );
+    if (!countMatch || Number.parseInt(countMatch[1], 10) < 1) return null;
+
+    return {
+      level: "info",
+      message: `Hermes auth pool is available for provider "${provider}"`,
+      hint: "Credential values remain private inside the selected Hermes profile.",
+      code: "hermes_auth_pool_available",
+    };
+  } catch {
+    // Older Hermes versions may not expose auth list. Existing API-key and
+    // config checks remain the non-billing fallback.
+    return null;
   }
 }
 
@@ -473,8 +558,9 @@ export async function testEnvironment(
     }
   }
 
-  // 4. Python available?
-  const pythonCheck = await checkPython(probe.run);
+  // 4. Python available? Prefer the interpreter actually used by the Hermes
+  // launcher; PATH python3 may be unrelated on systems with isolated installs.
+  const pythonCheck = await checkHermesPythonRuntime(command, probe.run);
   if (pythonCheck) checks.push(pythonCheck);
 
   // 5. Model config
@@ -491,9 +577,21 @@ export async function testEnvironment(
     }
   }
 
-  // 7. API keys (check config.env — server resolves secrets before calling us)
-  const apiKeyCheck = await checkApiKeys(config, detectedConfig, !probe.isRemote);
-  if (apiKeyCheck) checks.push(apiKeyCheck);
+  // 7. Provider credentials. Prefer the selected Hermes profile's read-only
+  // auth pool, then fall back to adapter env/config key checks.
+  const authPoolCheck = await checkHermesAuthPool(
+    command,
+    ctx.companyId,
+    config,
+    probe.run,
+    detectedConfig ?? {},
+  );
+  if (authPoolCheck) {
+    checks.push(authPoolCheck);
+  } else {
+    const apiKeyCheck = await checkApiKeys(config, detectedConfig, !probe.isRemote);
+    if (apiKeyCheck) checks.push(apiKeyCheck);
+  }
 
   // 8. Provider/model consistency
   const providerCheck = await checkProviderConsistency(config, detectedConfig);

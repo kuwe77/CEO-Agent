@@ -12,7 +12,9 @@ vi.mock("@paperclipai/adapter-utils/execution-target", () => ({
     exitCode: 0,
     signal: null,
     timedOut: false,
-    stdout: command === "python3" ? "Python 3.11.0\n" : args[0] === "--version" ? "fake-hermes 1.0\n" : "",
+    stdout: args[0] === "--version"
+      ? "Hermes Agent v0.19.0\nPython: 3.11.15\n"
+      : "",
     stderr: "",
   })),
 }));
@@ -49,13 +51,17 @@ test("runs Hermes CLI and company-owned profile probes inside the selected remot
       "hermes",
       ["profile", "show", "pccompanyteststrategy"],
     ]),
-    expect.arrayContaining([expect.any(String), remoteTarget, "python3", ["--version"]]),
   ]));
+  expect(calls.some((call) => call[2] === "python3")).toBe(false);
   expect(result.checks).toContainEqual(expect.objectContaining({
     code: "hermes_environment_target",
     level: "info",
   }));
   expect(result.checks).toContainEqual(expect.objectContaining({
     code: "hermes_profile_available",
+  }));
+  expect(result.checks).toContainEqual(expect.objectContaining({
+    code: "hermes_python_runtime",
+    level: "info",
   }));
 });

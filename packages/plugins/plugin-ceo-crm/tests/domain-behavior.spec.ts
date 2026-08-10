@@ -91,6 +91,43 @@ describe("CEO CRM domain behavior", () => {
     expect(executes.some((entry) => /^\s*UPDATE\b/i.test(entry.sql))).toBe(false);
   });
 
+  it("accepts semantically identical evidence objects after jsonb reorders their keys", async () => {
+    const inputValue = {
+      goalId: "goal-a",
+      projectId: "project-a",
+      issueId: "issue-a",
+      approvalRequired: true,
+    };
+    const storedValue = {
+      issueId: "issue-a",
+      goalId: "goal-a",
+      approvalRequired: true,
+      projectId: "project-a",
+    };
+    const { ctx } = context([
+      [{ id: "deal-a" }],
+      [{
+        id: "evidence-stable",
+        entity_kind: "deal",
+        entity_id: "deal-a",
+        field_name: "operating_validation_scope",
+        proposed_value: storedValue,
+        source: "founder authorization",
+      }],
+    ]);
+
+    await expect(proposeEvidence(ctx, {
+      companyId: "company-a",
+      entityKind: "deal",
+      entityId: "deal-a",
+      field: "operating_validation_scope",
+      value: inputValue,
+      source: "founder authorization",
+      idempotencyKey: "deal-a-operating-scope",
+      actor: { type: "user", id: "local-board", userId: "local-board" },
+    })).resolves.toMatchObject({ id: "evidence-stable", status: "proposed" });
+  });
+
   it("retains the initiating board principal on evidence proposals", async () => {
     const { ctx, executes } = context([[{ id: "contact-a" }], [{ id: "evidence-stable", entity_kind: "contact", entity_id: "contact-a", field_name: "title", proposed_value: "Founder", source: "meeting notes" }]]);
     await proposeEvidence(ctx, {

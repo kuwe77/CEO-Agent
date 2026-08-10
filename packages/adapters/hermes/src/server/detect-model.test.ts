@@ -134,7 +134,8 @@ test("testEnvironment does not warn about missing API keys when Hermes config pr
     const codes = result.checks.map((check) => check.code);
 
     expect(codes.includes("hermes_no_api_keys")).toBe(false);
-    expect(result.status).toBe("pass");
+    expect(codes.includes("hermes_python_runtime_unverified")).toBe(true);
+    expect(result.status).toBe("warn");
   });
 });
 
@@ -181,6 +182,7 @@ test("testEnvironment does not warn about missing API keys when Hermes config pr
     const codes = result.checks.map((check) => check.code);
 
     expect(codes.includes("hermes_no_api_keys")).toBe(false);
-    expect(result.status).toBe("pass");
+    expect(codes.includes("hermes_python_runtime_unverified")).toBe(true);
+    expect(result.status).toBe("warn");
   });
 });
