@@ -8,10 +8,8 @@ import { formatCents } from "@/lib/utils";
 import { timeAgo } from "@/lib/timeAgo";
 import { PluginSlotOutlet } from "@/plugins/slots";
 import type { CompanyUserProfile } from "@/lib/company-members";
-import { getAdapterLabel } from "@/adapters/adapter-display-registry";
-import { AlertTriangle, ArrowUpRight, Bot, CircleDot, FileText, ShieldCheck, WalletCards } from "lucide-react";
-import { AgentTopologyCanvas } from "./AgentTopologyCanvas";
-import { extractHermesProfile, getOperationalState } from "./command-center-model";
+import { ArrowUpRight, Bot, CircleDot, FileText, ShieldCheck, WalletCards } from "lucide-react";
+import { getOperationalState } from "./command-center-model";
 
 interface CommandCenterProps {
   companyId: string;
@@ -47,10 +45,10 @@ function attentionLabel(count: number, singular: string) {
 
 function MetricRail({ summary }: { summary: DashboardSummary }) {
   const enabledAgents = summary.agents.active + summary.agents.running + summary.agents.paused + summary.agents.error;
-  const approvalCount = summary.pendingApprovals + summary.budgets.pendingApprovals;
+  const approvalCount = summary.pendingApprovals;
   const metrics = [
-    { label: "Agents", value: enabledAgents, detail: `${summary.agents.running} running`, to: "/agents", icon: Bot },
-    { label: "Work in progress", value: summary.tasks.inProgress, detail: `${summary.tasks.blocked} blocked`, to: "/issues", icon: CircleDot },
+    { label: "Operating capacity", value: enabledAgents, detail: `${summary.agents.running} agents running`, to: "/agents", icon: Bot },
+    { label: "Delivery", value: summary.tasks.inProgress, detail: `${summary.tasks.blocked} blocked of ${summary.tasks.open} open`, to: "/issues", icon: CircleDot },
     {
       label: "Spend / budget",
       value: formatCents(summary.costs.monthSpendCents),
@@ -60,11 +58,11 @@ function MetricRail({ summary }: { summary: DashboardSummary }) {
       to: "/costs",
       icon: WalletCards,
     },
-    { label: "Approvals", value: approvalCount, detail: "Awaiting board review", to: "/approvals", icon: ShieldCheck },
+    { label: "Decision load", value: approvalCount, detail: approvalCount === 0 ? "No board decisions waiting" : "Awaiting board review", to: "/approvals", icon: ShieldCheck },
   ];
 
   return (
-    <div className="grid divide-y divide-border rounded-lg border border-border bg-card sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-4">
+    <div className="ceo-command-center__health-grid grid sm:grid-cols-2 xl:grid-cols-4">
       {metrics.map((metric) => {
         const Icon = metric.icon;
         return (
@@ -83,81 +81,45 @@ function MetricRail({ summary }: { summary: DashboardSummary }) {
 }
 
 function FounderAttention({ summary }: { summary: DashboardSummary }) {
-  const approvalCount = summary.pendingApprovals + summary.budgets.pendingApprovals;
+  const approvalCount = summary.pendingApprovals;
+  const standaloneBudgetIncidentCount = Math.max(
+    0,
+    summary.budgets.activeIncidents - summary.budgets.pendingApprovals,
+  );
   const attention = [
     { count: approvalCount, label: "pending approval", to: "/approvals" },
     { count: summary.tasks.blocked, label: "blocked task", to: "/issues?attention=blocked" },
     { count: summary.agents.error, label: "agent error", to: "/agents" },
-    { count: summary.budgets.activeIncidents, label: "budget incident", to: "/costs" },
+    { count: standaloneBudgetIncidentCount, label: "budget incident", to: "/costs" },
   ].filter((item) => item.count > 0);
+  const attentionTotal = attention.reduce((total, item) => total + item.count, 0);
 
   return (
-    <section className="rounded-lg border border-border bg-card p-3" aria-label="Founder attention">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2 text-sm">
-          <AlertTriangle className="h-4 w-4 text-ceo-accent" aria-hidden />
-          <span className="font-medium text-foreground">Founder attention</span>
-        </div>
-        {attention.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No exceptions requiring founder attention.</p>
-        ) : (
-          <div className="flex flex-wrap gap-x-4 gap-y-2">
-            {attention.map((item) => (
-              <Link key={item.label} to={item.to} className="text-sm font-medium text-foreground hover:text-ceo-accent hover:underline">
-                {attentionLabel(item.count, item.label)}
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function configuredHermesProfile(agent: Agent): string | null {
-  const extracted = extractHermesProfile(agent);
-  if (extracted) return extracted;
-
-  const adapterConfig = agent.adapterConfig;
-  const configured = adapterConfig && typeof adapterConfig === "object" ? adapterConfig.profile : undefined;
-  return (agent.adapterType === "hermes_gateway" || agent.adapterType === "hermes_local")
-    && typeof configured === "string"
-    && configured.trim()
-    ? configured.trim()
-    : null;
-}
-
-function ModelRouting({ agents, agentsError }: Pick<CommandCenterProps, "agents" | "agentsError">) {
-  return (
-    <section className="ceo-command-center__routing rounded-2xl border p-4 xl:row-span-2" data-testid="ceo-model-routing" aria-labelledby="model-routing-title">
-      <div className="ceo-command-center__routing-heading">
+    <section className={`ceo-command-center__today-panel ceo-command-center__today-panel--${attention.length > 0 ? "alert" : "clear"}`} aria-label="Founder attention">
+      <div className="ceo-command-center__today-heading">
         <div>
-          <p className="ceo-command-center__eyebrow">Execution map</p>
-          <h2 id="model-routing-title" className="ceo-command-center__routing-title">Model routing</h2>
+          <p className="ceo-command-center__section-label">Today</p>
+          <h2>Founder attention</h2>
         </div>
-        {sectionLink("/agents", "Agent registry")}
+        <span className="ceo-command-center__today-count">{attentionTotal}</span>
       </div>
-      <p className="ceo-command-center__routing-intro">Adapter paths currently configured for this company.</p>
-      {agentsError ? (
-        <p className="ceo-command-center__state text-destructive">Agent routing could not be loaded. Open Agent registry to retry.</p>
-      ) : agents === undefined ? (
-        <p className="ceo-command-center__state">Loading configured agent routes.</p>
-      ) : agents.length === 0 ? (
-        <p className="ceo-command-center__state">No agents are connected to this company yet.</p>
+      {attention.length === 0 ? (
+        <div className="ceo-command-center__clear-state">
+          <ShieldCheck className="h-5 w-5" aria-hidden />
+          <div>
+            <p>No exceptions requiring founder attention.</p>
+            <span>Operations are within the defined approval, delivery, and budget boundaries.</span>
+          </div>
+        </div>
       ) : (
-        <div className="ceo-command-center__routing-list">
-          {[...agents]
-            .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: "base" }))
-            .map((agent) => {
-              const hermesProfile = configuredHermesProfile(agent);
-              return (
-                <div className="ceo-command-center__routing-row" key={agent.id}>
-                  <span className="ceo-command-center__agent-name">{agent.name}</span>
-                  <span className="ceo-command-center__adapter">{getAdapterLabel(agent.adapterType)}</span>
-                  {hermesProfile && <span className="ceo-command-center__profile">Hermes profile: {hermesProfile}</span>}
-                </div>
-              );
-            })}
+        <div className="ceo-command-center__attention-list">
+          {attention.map((item, index) => (
+            <Link key={item.label} to={item.to} className="ceo-command-center__attention-item">
+              <span className="ceo-command-center__attention-index">{String(index + 1).padStart(2, "0")}</span>
+              <span>{attentionLabel(item.count, item.label)}</span>
+              <ArrowUpRight className="h-4 w-4" aria-hidden />
+            </Link>
+          ))}
         </div>
       )}
     </section>
@@ -197,7 +159,7 @@ function WorkInMotion({
       ) : (
         <div className="divide-y divide-border">
           {activeIssues.map((issue) => (
-            <Link key={issue.id} to={`/issues/${issue.identifier ?? issue.id}`} className="grid gap-2 p-3 no-underline hover:bg-accent/50 sm:grid-cols-3 sm:items-center">
+            <Link key={issue.id} to={`/issues/${encodeURIComponent(issue.identifier ?? issue.id)}`} className="grid gap-2 p-3 no-underline hover:bg-accent/50 sm:grid-cols-3 sm:items-center">
               <div className="flex items-center gap-2">
                 <StatusIcon status={issue.status} blockerAttention={issue.blockerAttention} />
                 <span className="font-mono text-xs text-muted-foreground">{issue.identifier ?? issue.id.slice(0, 8)}</span>
@@ -297,9 +259,9 @@ export function CommandCenter(props: CommandCenterProps) {
   const updatedLabel = props.lastUpdatedAt ? `Updated ${timeAgo(props.lastUpdatedAt)}` : "Last update unavailable";
 
   return (
-    <div className="ceo-command-center space-y-4 rounded-2xl border p-4 lg:p-6" data-testid="ceo-editorial-dashboard">
-      <header className="ceo-command-center__header p-4 lg:p-6">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+    <main className="ceo-command-center" data-testid="ceo-editorial-dashboard">
+      <header className="ceo-command-center__header">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex items-start gap-3">
             <div
               className="ceo-command-center__monogram flex size-9 shrink-0 items-center justify-center font-mono text-sm font-semibold"
@@ -308,9 +270,9 @@ export function CommandCenter(props: CommandCenterProps) {
               CA
             </div>
             <div>
-              <p className="ceo-command-center__eyebrow">CEO Agent</p>
+              <p className="ceo-command-center__eyebrow">CEO Agent command center</p>
               <h1 className="ceo-command-center__title mt-1">{props.companyName}</h1>
-              <p className="ceo-command-center__header-copy mt-2">Founder principal: review live exceptions, decide priorities, and keep the company directed.</p>
+              <p className="ceo-command-center__header-copy mt-2">Decisions first. Business health second. Execution detail when you need it.</p>
             </div>
           </div>
           <div className="ceo-command-center__status text-left lg:text-right">
@@ -320,56 +282,71 @@ export function CommandCenter(props: CommandCenterProps) {
         </div>
       </header>
 
-      <div className="ceo-command-center__attention"><FounderAttention summary={props.summary} /></div>
-      <div className="ceo-command-center__metrics"><MetricRail summary={props.summary} /></div>
+      <FounderAttention summary={props.summary} />
 
-      <div className="ceo-command-center__command-grid grid gap-4 xl:grid-cols-2">
-        <ModelRouting agents={props.agents} agentsError={props.agentsError} />
-        <WorkInMotion agents={props.agents} issues={props.issues} issuesError={props.issuesError} />
-        <Evidence artifacts={props.artifacts} artifactsError={props.artifactsError} />
-
-        <section className="ceo-command-center__panel ceo-command-center__operations rounded-2xl border p-4" aria-labelledby="operations-title">
-        <div className="mb-3 flex items-center justify-between">
+      <section className="ceo-command-center__health" aria-labelledby="business-health-title">
+        <div className="ceo-command-center__section-heading">
           <div>
-            <h2 id="operations-title" className="text-sm font-semibold text-foreground">Live operations</h2>
-            <p className="mt-1 text-xs text-muted-foreground">Current agent runs and recent execution context.</p>
+            <p className="ceo-command-center__section-label">Business health</p>
+            <h2 id="business-health-title">Operating position</h2>
           </div>
-          {sectionLink("/dashboard/live", "Open live view")}
+          <p>Live control-plane signals, not forecasted or invented metrics.</p>
         </div>
-        {props.agentsError ? (
-          <p className="text-sm text-destructive">Live agent operations could not be loaded. Open Agents to retry.</p>
-        ) : props.agents === undefined ? (
-          <p className="text-sm text-muted-foreground">Loading live agent operations.</p>
-        ) : (
-          <ActiveAgentsPanel
-            companyId={props.companyId}
-            title="Active agent runs"
-            emptyMessage="No active or recent agent runs are connected to this company."
-            cardClassName="ceo-command-center__run-card"
+        <MetricRail summary={props.summary} />
+      </section>
+
+      <section className="ceo-command-center__execution" aria-labelledby="execution-title">
+        <div className="ceo-command-center__section-heading">
+          <div>
+            <p className="ceo-command-center__section-label">Execution</p>
+            <h2 id="execution-title">Work and evidence</h2>
+          </div>
+          {sectionLink("/agent-studio", "Open Agent Studio")}
+        </div>
+
+        <div className="ceo-command-center__command-grid grid gap-4 xl:grid-cols-2">
+          <WorkInMotion agents={props.agents} issues={props.issues} issuesError={props.issuesError} />
+          <Evidence artifacts={props.artifacts} artifactsError={props.artifactsError} />
+
+          <section className="ceo-command-center__panel ceo-command-center__operations rounded-2xl border p-4" aria-labelledby="operations-title">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <h2 id="operations-title" className="text-sm font-semibold text-foreground">Live operations</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Current agent runs and recent execution context.</p>
+              </div>
+              {sectionLink("/dashboard/live", "Open live view")}
+            </div>
+            {props.agentsError ? (
+              <p className="text-sm text-destructive">Live agent operations could not be loaded. Open Agents to retry.</p>
+            ) : props.agents === undefined ? (
+              <p className="text-sm text-muted-foreground">Loading live agent operations.</p>
+            ) : (
+              <ActiveAgentsPanel
+                companyId={props.companyId}
+                title="Active agent runs"
+                emptyMessage="No active or recent agent runs are connected to this company."
+                cardClassName="ceo-command-center__run-card"
+              />
+            )}
+          </section>
+
+          <PluginSlotOutlet
+            slotTypes={["dashboardWidget"]}
+            context={{ companyId: props.companyId }}
+            className="grid gap-4 md:grid-cols-2"
+            itemClassName="ceo-command-center__plugin p-4"
           />
-        )}
-        </section>
 
-        <div className="ceo-command-center__topology">
-          <AgentTopologyCanvas companyId={props.companyId} agents={props.agents} error={props.agentsError} />
+          <AuditFeed
+            activity={props.activity}
+            activityError={props.activityError}
+            agentMap={props.agentMap}
+            userProfileMap={props.userProfileMap}
+            entityNameMap={props.entityNameMap}
+            entityTitleMap={props.entityTitleMap}
+          />
         </div>
-
-        <PluginSlotOutlet
-          slotTypes={["dashboardWidget"]}
-          context={{ companyId: props.companyId }}
-          className="grid gap-4 md:grid-cols-2"
-          itemClassName="ceo-command-center__plugin p-4"
-        />
-
-        <AuditFeed
-          activity={props.activity}
-          activityError={props.activityError}
-          agentMap={props.agentMap}
-          userProfileMap={props.userProfileMap}
-          entityNameMap={props.entityNameMap}
-          entityTitleMap={props.entityTitleMap}
-        />
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

@@ -4,6 +4,7 @@ import { Bot } from "lucide-react";
 import type { Agent } from "@paperclipai/shared";
 
 import { agentsApi } from "../api/agents";
+import { issuesApi } from "../api/issues";
 import { instanceSettingsApi } from "../api/instanceSettings";
 import { AgentStudio } from "../components/ceo/AgentStudio";
 import type { AgentRuntimeValidationStatus } from "../components/ceo/AgentStudio";
@@ -60,6 +61,11 @@ export function AgentStudioPage() {
     queryFn: () => agentsApi.list(selectedCompanyId!),
     enabled: Boolean(selectedCompanyId),
   });
+  const issuesQuery = useQuery({
+    queryKey: queryKeys.issues.list(selectedCompanyId!),
+    queryFn: () => issuesApi.list(selectedCompanyId!),
+    enabled: Boolean(selectedCompanyId),
+  });
 
   if (!selectedCompanyId) {
     return (
@@ -78,6 +84,9 @@ export function AgentStudioPage() {
       companyId={selectedCompanyId}
       companyName={companyName}
       agents={agentsQuery.data}
+      issues={issuesQuery.data}
+      issuesError={Boolean(issuesQuery.error && issuesQuery.data === undefined)}
+      issuesLoading={issuesQuery.isLoading}
       agentsError={Boolean(agentsQuery.error && agentsQuery.data === undefined)}
       isLoading={agentsQuery.isLoading}
       onValidateAgent={(agent) => runtimeValidation.mutate(agent)}
