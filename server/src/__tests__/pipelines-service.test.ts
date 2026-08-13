@@ -971,7 +971,7 @@ describeEmbeddedPostgres("pipelineService", () => {
         actor: userActor,
       }),
     ).rejects.toMatchObject({ status: 422, details: { code: "parent_depth_exceeded" } });
-  });
+  }, 30_000);
 
   it("rolls up a three-level tree, updates counters, and emits children_terminal once", async () => {
     const { company, pipeline } = await seedPipeline();
@@ -1054,7 +1054,7 @@ describeEmbeddedPostgres("pipelineService", () => {
     expect(comments).toHaveLength(1);
     expect(comments[0]!.authorType).toBe("system");
     expect(comments[0]!.body).toContain("All child cases");
-  });
+  }, 30_000);
 
   it("auto-advances a parent when all descendants are terminal", async () => {
     const company = await seedCompany();

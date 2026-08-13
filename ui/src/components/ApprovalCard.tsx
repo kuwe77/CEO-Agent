@@ -54,7 +54,7 @@ export function ApprovalCard({
 
   return (
     <Card className="block border-border/70 p-4">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:justify-between sm:gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border/70 bg-background/80">
@@ -71,7 +71,11 @@ export function ApprovalCard({
                 {requesterAgent && (
                   <div className="inline-flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
                     <span>Requested by</span>
-                    <Identity name={requesterAgent.name} size="sm" className="inline-flex" />
+                    <Identity
+                      name={requesterAgent.name}
+                      size="sm"
+                      className="inline-flex max-w-full [&>span:last-child]:!overflow-visible [&>span:last-child]:!text-clip [&>span:last-child]:!whitespace-normal [&>span:last-child]:break-words"
+                    />
                   </div>
                 )}
               </div>
@@ -86,7 +90,7 @@ export function ApprovalCard({
             </div>
           </div>
         </div>
-        <div className="shrink-0">
+        <div className="shrink-0 self-start">
           <div className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background/80 px-2.5 py-1 text-xs text-muted-foreground">
             {statusIcon(approval.status)}
             <span className="capitalize">{approval.status.replace(/_/g, " ")}</span>

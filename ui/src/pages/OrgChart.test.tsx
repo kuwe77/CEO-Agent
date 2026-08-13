@@ -4,7 +4,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { OrgChart } from "./OrgChart";
+import { OrgChart, readableInitialZoom } from "./OrgChart";
 
 const navigateMock = vi.fn();
 const orgMock = vi.fn();
@@ -36,6 +36,13 @@ vi.mock("../components/AgentIconPicker", () => ({
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+
+describe("readableInitialZoom", () => {
+  it("does not shrink organisation cards below a readable 75% scale", () => {
+    expect(readableInitialZoom(0.39)).toBe(0.75);
+    expect(readableInitialZoom(0.9)).toBe(0.9);
+  });
+});
 
 const orgTree = [
   {

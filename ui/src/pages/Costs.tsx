@@ -619,12 +619,12 @@ export function Costs() {
       </div>
 
       <Tabs value={mainTab} onValueChange={(value) => setMainTab(value as typeof mainTab)}>
-        <TabsList variant="line" className="justify-start">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="budgets">Budgets</TabsTrigger>
-          <TabsTrigger value="providers">Providers</TabsTrigger>
-          <TabsTrigger value="billers">Billers</TabsTrigger>
-          <TabsTrigger value="finance">Finance</TabsTrigger>
+        <TabsList variant="line" className="grid w-full grid-cols-5 p-0">
+          <TabsTrigger className="min-w-0 px-0.5 text-(length:--text-micro) sm:px-2 sm:text-sm" value="overview">Overview</TabsTrigger>
+          <TabsTrigger className="min-w-0 px-0.5 text-(length:--text-micro) sm:px-2 sm:text-sm" value="budgets">Budgets</TabsTrigger>
+          <TabsTrigger className="min-w-0 px-0.5 text-(length:--text-micro) sm:px-2 sm:text-sm" value="providers">Providers</TabsTrigger>
+          <TabsTrigger className="min-w-0 px-0.5 text-(length:--text-micro) sm:px-2 sm:text-sm" value="billers">Billers</TabsTrigger>
+          <TabsTrigger className="min-w-0 px-0.5 text-(length:--text-micro) sm:px-2 sm:text-sm" value="finance">Finance</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4 space-y-4">

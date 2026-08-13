@@ -296,14 +296,14 @@ function ResizablePropertiesPanel({
         // position:fixed, so the main column never reflows.
         <div
           aria-hidden
-          className="hidden md:block shrink-0"
+          className="hidden lg:block shrink-0"
           style={{ width: panelVisible ? width : 0 }}
         />
       ) : null}
       <aside
         ref={asideRef}
         className={cn(
-          "hidden md:flex border-l border-border bg-card flex-col",
+          "hidden lg:flex border-l border-border bg-card flex-col",
           isFixed
             ? "tc-pane-glide fixed z-40 overflow-hidden"
             : cn(

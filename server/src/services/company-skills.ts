@@ -4852,7 +4852,9 @@ export function companySkillService(db: Db) {
         path: entryPath,
         kind: entry.isDirectory() ? "directory" : "file",
         isSkill: entry.isDirectory()
-          ? Boolean((await statPath(path.join(targetPath, entry.name, "SKILL.md")))?.isFile())
+          ? await fs.readdir(path.join(targetPath, entry.name), { withFileTypes: true })
+            .then((children) => children.some((child) => child.name === "SKILL.md" && child.isFile()))
+            .catch(() => false)
           : entry.name === "SKILL.md",
       });
     }
@@ -4990,6 +4992,7 @@ export function companySkillService(db: Db) {
         .filter((selection) => selection.workspaceId === target.workspaceId)
         .map((selection) => selection.path);
       const directories = await discoverProjectWorkspaceSkillDirectories(target, explicitPaths);
+      const canonicalWorkspaceRoot = await fs.realpath(target.workspaceCwd).catch(() => target.workspaceCwd);
 
       for (const directory of directories) {
         discovered += 1;
@@ -5011,7 +5014,7 @@ export function companySkillService(db: Db) {
               workspaceName: target.workspaceName,
               workspaceCwd: target.workspaceCwd,
             },
-            workspaceRoot: target.workspaceCwd,
+            workspaceRoot: canonicalWorkspaceRoot,
           });
         } catch (error) {
           const message = projectSkillImportFailureReason(error);

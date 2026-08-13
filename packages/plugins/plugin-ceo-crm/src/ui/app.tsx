@@ -31,8 +31,29 @@ export async function runFounderFormMutation<T>(
 
 const shell: React.CSSProperties = { minHeight: "100%", background: "var(--ceo-command-stage)", color: "var(--ceo-command-ink)", padding: "calc(var(--spacing) * 6)", fontFamily: "var(--font-sans)" };
 const panel: React.CSSProperties = { background: "var(--ceo-command-surface)", borderColor: "var(--ceo-command-line)", borderStyle: "solid", borderWidth: "thin", borderRadius: "var(--ceo-command-radius)", padding: "calc(var(--spacing) * 5)", boxShadow: "var(--shadow-lg)" };
-const accent: React.CSSProperties = { background: "var(--ceo-command-accent)", color: "var(--ceo-command-panel-text)", border: 0, borderRadius: "var(--radius-lg)", padding: "calc(var(--spacing) * 2.25) calc(var(--spacing) * 3)", cursor: "pointer" };
-const formLayout: React.CSSProperties = { display: "grid", gap: "calc(var(--spacing) * 2)", marginTop: "calc(var(--spacing) * 3.5)" };
+const accent: React.CSSProperties = { minHeight: 42, background: "var(--ceo-command-accent)", color: "var(--ceo-command-panel-text)", border: 0, borderRadius: "var(--radius-lg)", padding: "calc(var(--spacing) * 2.25) calc(var(--spacing) * 3)", cursor: "pointer", fontWeight: "var(--font-weight-semibold)" };
+export const crmControlStyle: React.CSSProperties = {
+  boxSizing: "border-box",
+  width: "100%",
+  minHeight: 42,
+  border: "1px solid color-mix(in oklab, var(--ceo-command-ink) 24%, transparent)",
+  borderRadius: "var(--radius-lg)",
+  background: "color-mix(in oklab, var(--ceo-command-surface) 90%, white)",
+  color: "var(--ceo-command-ink)",
+  padding: "calc(var(--spacing) * 2.25) calc(var(--spacing) * 2.75)",
+  font: "inherit",
+};
+export const crmFormStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 14rem), 1fr))",
+  alignItems: "end",
+  gap: "calc(var(--spacing) * 2.5)",
+  marginTop: "calc(var(--spacing) * 3.5)",
+  padding: "calc(var(--spacing) * 3)",
+  border: "1px solid color-mix(in oklab, var(--ceo-command-ink) 14%, transparent)",
+  borderRadius: "var(--radius-xl)",
+  background: "color-mix(in oklab, var(--ceo-command-surface) 95%, var(--ceo-command-ink))",
+};
 
 function StatusView<T>({ loading, error, data, emptyMessage, content }: { loading: boolean; error: { message: string } | null; data: T | null | undefined; emptyMessage: string; content: React.ReactNode }) {
   if (loading) return <p>Loading CRM data…</p>;
@@ -93,15 +114,15 @@ function FounderForms({
   return <section style={{ ...panel, marginTop: "calc(var(--spacing) * 4.5)" }} aria-label="Founder CRM create forms">
     <h2 key="founder-actions-heading" style={{ marginTop: 0 }}>Founder actions</h2>
     <button key="bootstrap" disabled={saving} style={accent} onClick={() => void submit(() => bootstrap({ companyId }))}>Create default pipeline</button>
-    <form key="account-form" onSubmit={(event) => { event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement); void submit(() => runFounderFormMutation(() => createAccount({ companyId, name: form.get("name"), domain: form.get("domain"), idempotencyKey: accountIdempotencyKey }), formElement, () => setAccountIdempotencyKey(crypto.randomUUID()))); }} style={formLayout}>
-      <strong key="account-label">Create account</strong><input key="account-name" required name="name" aria-label="Account name" placeholder="Account name" /><input key="account-domain" name="domain" aria-label="Account domain" placeholder="Domain (optional)" /><button key="account-submit" disabled={saving} style={accent}>Add account</button>
+    <form key="account-form" onSubmit={(event) => { event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement); void submit(() => runFounderFormMutation(() => createAccount({ companyId, name: form.get("name"), domain: form.get("domain"), idempotencyKey: accountIdempotencyKey }), formElement, () => setAccountIdempotencyKey(crypto.randomUUID()))); }} style={crmFormStyle}>
+      <strong key="account-label" style={{ gridColumn: "1 / -1" }}>Create account</strong><input key="account-name" required name="name" aria-label="Account name" placeholder="Account name" style={crmControlStyle} /><input key="account-domain" name="domain" aria-label="Account domain" placeholder="Domain (optional)" style={crmControlStyle} /><button key="account-submit" disabled={saving} style={accent}>Add account</button>
     </form>
-    <form key="contact-form" onSubmit={(event) => { event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement); void submit(() => runFounderFormMutation(() => createContact({ companyId, accountId: form.get("accountId"), firstName: form.get("firstName"), lastName: form.get("lastName"), email: form.get("email"), title: form.get("title"), idempotencyKey: contactIdempotencyKey }), formElement, () => setContactIdempotencyKey(crypto.randomUUID()))); }} style={formLayout}>
-      <strong key="contact-label">Create contact</strong><input key="contact-first" required name="firstName" aria-label="Contact first name" placeholder="First name" /><input key="contact-last" name="lastName" aria-label="Contact last name" placeholder="Last name" /><input key="contact-email" name="email" type="email" aria-label="Contact email" placeholder="Email" /><select key="contact-account" name="accountId" aria-label="Contact account">{renderAccountOptions("no-contact-account")}</select><input key="contact-title" name="title" aria-label="Contact title" placeholder="Title (optional)" /><button key="contact-submit" disabled={saving} style={accent}>Add contact</button>
+    <form key="contact-form" onSubmit={(event) => { event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement); void submit(() => runFounderFormMutation(() => createContact({ companyId, accountId: form.get("accountId"), firstName: form.get("firstName"), lastName: form.get("lastName"), email: form.get("email"), title: form.get("title"), idempotencyKey: contactIdempotencyKey }), formElement, () => setContactIdempotencyKey(crypto.randomUUID()))); }} style={crmFormStyle}>
+      <strong key="contact-label" style={{ gridColumn: "1 / -1" }}>Create contact</strong><input key="contact-first" required name="firstName" aria-label="Contact first name" placeholder="First name" style={crmControlStyle} /><input key="contact-last" name="lastName" aria-label="Contact last name" placeholder="Last name" style={crmControlStyle} /><input key="contact-email" name="email" type="email" aria-label="Contact email" placeholder="Email" style={crmControlStyle} /><select key="contact-account" name="accountId" aria-label="Contact account" style={crmControlStyle}>{renderAccountOptions("no-contact-account")}</select><input key="contact-title" name="title" aria-label="Contact title" placeholder="Title (optional)" style={crmControlStyle} /><button key="contact-submit" disabled={saving} style={accent}>Add contact</button>
     </form>
-    <form key="deal-form" onSubmit={(event) => { event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement); const [pipelineId, stageId] = String(form.get("pipelineStage") ?? "").split(":"); void submit(() => runFounderFormMutation(() => createDeal({ companyId, name: form.get("name"), accountId: form.get("accountId"), pipelineId, stageId, amount: form.get("amount"), currency: form.get("currency"), idempotencyKey: dealIdempotencyKey }), formElement, () => setDealIdempotencyKey(crypto.randomUUID()))); }} style={formLayout}>
-      <strong key="deal-label">Create deal</strong><input key="deal-name" required name="name" aria-label="Deal name" placeholder="Deal name" /><select key="deal-account" name="accountId" aria-label="Deal account">{renderAccountOptions("no-deal-account")}</select><select key="deal-stage" required name="pipelineStage" aria-label="Deal pipeline stage">{renderPipelineOptions()}</select><input key="deal-amount" name="amount" type="number" min="0" step="0.01" aria-label="Deal amount" placeholder="Amount" /><input key="deal-currency" name="currency" defaultValue="USD" maxLength={3} aria-label="Deal currency" /><button key="deal-submit" disabled={saving || pipelines.length === 0} style={accent}>Add deal</button>
-      {pipelines.length === 0 ? <small key="deal-help">Create the default pipeline before adding a deal.</small> : null}
+    <form key="deal-form" onSubmit={(event) => { event.preventDefault(); const formElement = event.currentTarget; const form = new FormData(formElement); const [pipelineId, stageId] = String(form.get("pipelineStage") ?? "").split(":"); void submit(() => runFounderFormMutation(() => createDeal({ companyId, name: form.get("name"), accountId: form.get("accountId"), pipelineId, stageId, amount: form.get("amount"), currency: form.get("currency"), idempotencyKey: dealIdempotencyKey }), formElement, () => setDealIdempotencyKey(crypto.randomUUID()))); }} style={crmFormStyle}>
+      <strong key="deal-label" style={{ gridColumn: "1 / -1" }}>Create deal</strong><input key="deal-name" required name="name" aria-label="Deal name" placeholder="Deal name" style={crmControlStyle} /><select key="deal-account" name="accountId" aria-label="Deal account" style={crmControlStyle}>{renderAccountOptions("no-deal-account")}</select><select key="deal-stage" required name="pipelineStage" aria-label="Deal pipeline stage" style={crmControlStyle}>{renderPipelineOptions()}</select><input key="deal-amount" name="amount" type="number" min="0" step="0.01" aria-label="Deal amount" placeholder="Amount" style={crmControlStyle} /><input key="deal-currency" name="currency" defaultValue="USD" maxLength={3} aria-label="Deal currency" style={crmControlStyle} /><button key="deal-submit" disabled={saving || pipelines.length === 0} style={accent}>Add deal</button>
+      {pipelines.length === 0 ? <small key="deal-help" style={{ gridColumn: "1 / -1" }}>Create the default pipeline before adding a deal.</small> : null}
     </form>
     {message ? <p key="action-message" role="status">{message}</p> : null}
   </section>;

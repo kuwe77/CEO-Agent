@@ -2958,9 +2958,12 @@ describe("IssueChatThread", () => {
 
     const dock = container.querySelector('[data-testid="issue-chat-composer-dock"]') as HTMLDivElement | null;
     expect(dock).not.toBeNull();
-    expect(dock?.className).toContain("sticky");
-    expect(dock?.className).toContain("bottom-(--sz-calc-8)");
-    expect(dock?.className).toContain("z-20");
+    expect(dock?.className).not.toContain("sticky");
+    expect(dock?.className).not.toContain("bottom-");
+    expect(dock?.className).not.toContain("z-20");
+    expect(dock?.className).toContain("border-t");
+    expect(dock?.className).toContain("bg-background");
+    expect(dock?.className).not.toContain("bg-gradient-to-t");
 
     const composer = container.querySelector('[data-testid="issue-chat-composer"]') as HTMLDivElement | null;
     expect(composer).not.toBeNull();

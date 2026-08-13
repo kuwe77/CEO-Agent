@@ -217,8 +217,11 @@ export function Projects() {
                         title={project.name}
                         subtitle={project.description ?? undefined}
                         reserveSubtitleSpace
+                        titleTextClassName="min-w-0 flex-1 break-words whitespace-normal"
+                        subtitleClassName="break-words whitespace-normal"
                         to={projectUrl(project)}
-                        className={state === "left" ? "group text-foreground/55" : "group"}
+                        className={state === "left" ? "group flex-wrap text-foreground/55" : "group flex-wrap"}
+                        trailingClassName="basis-full justify-end sm:basis-auto"
                         trailing={
                           <div className="flex items-center gap-3">
                             <span

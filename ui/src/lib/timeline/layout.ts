@@ -323,7 +323,7 @@ export function computeLayout(result: WorkTimelineResult, opts: LayoutOptions): 
       const laneTop = y + 6 + lane * (barH + laneGap);
       const x1 = x(spanStartMs(r));
       const x2raw = x(spanEndMs(r, nowMs));
-      const x2 = Math.max(x1 + 3, x2raw); // clamp sub-minute runs to a visible min width
+      const x2 = Math.max(x1 + 12, x2raw); // keep short runs visible and pointer-targetable when zoomed out
       const bar: PositionedBar = {
         span: r,
         x1,

@@ -256,6 +256,21 @@ type IssueDetailComment = (IssueComment | OptimisticIssueComment) & {
 const FEEDBACK_TERMS_URL = import.meta.env.VITE_FEEDBACK_TERMS_URL?.trim() || "https://paperclip.ing/tos";
 const ISSUE_COMMENT_AUTOLOAD_LIMIT = ISSUE_COMMENT_PAGE_SIZE * 3;
 const JUMP_TO_LATEST_MAX_COMMENT_PAGES = 10;
+const ISSUE_PROPERTIES_DRAWER_MAX_WIDTH = 1023;
+
+export function shouldUseIssuePropertiesDrawer(viewportWidth: number): boolean {
+  return viewportWidth <= ISSUE_PROPERTIES_DRAWER_MAX_WIDTH;
+}
+
+export function issuePropertiesVisibilityForLayoutTransition(
+  previousUsesDrawer: boolean | null,
+  nextUsesDrawer: boolean,
+  desktopPanelVisible: boolean,
+): boolean | null {
+  if (previousUsesDrawer === nextUsesDrawer) return null;
+  return nextUsesDrawer ? false : desktopPanelVisible;
+}
+
 const TREE_CONTROL_MODE_LABEL: Record<IssueTreeControlMode, string> = {
   pause: "Pause subtree",
   resume: "Resume subtree",
@@ -1602,6 +1617,33 @@ export function IssueDetail() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [mobilePropsOpen, setMobilePropsOpen] = useState(false);
+  const desktopPanelVisibleRef = useRef(panelVisible);
+  const previousPropertiesDrawerRef = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && !shouldUseIssuePropertiesDrawer(window.innerWidth)) {
+      desktopPanelVisibleRef.current = panelVisible;
+    }
+  }, [panelVisible]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const syncPropertiesLayout = () => {
+      const nextUsesDrawer = shouldUseIssuePropertiesDrawer(window.innerWidth);
+      const nextVisibility = issuePropertiesVisibilityForLayoutTransition(
+        previousPropertiesDrawerRef.current,
+        nextUsesDrawer,
+        desktopPanelVisibleRef.current,
+      );
+      previousPropertiesDrawerRef.current = nextUsesDrawer;
+      if (nextVisibility !== null) setPanelVisible(nextVisibility, { persist: false });
+    };
+
+    syncPropertiesLayout();
+    window.addEventListener("resize", syncPropertiesLayout);
+    return () => window.removeEventListener("resize", syncPropertiesLayout);
+  }, [setPanelVisible]);
+
   const [fileViewerPromptOpen, setFileViewerPromptOpen] = useState(false);
   const [detailTab, setDetailTab] = useState("chat");
   // Redesign: the center tab strip is hidden, so chat is the only surface —
@@ -4118,12 +4160,7 @@ export function IssueDetail() {
         )}
       >
         <Paperclip className="h-3.5 w-3.5 mr-1.5" />
-        {uploadAttachment.isPending || importMarkdownDocument.isPending ? "Uploading..." : (
-          <>
-            <span className="hidden sm:inline">Upload attachment</span>
-            <span className="sm:hidden">Upload</span>
-          </>
-        )}
+        {uploadAttachment.isPending || importMarkdownDocument.isPending ? "Uploading..." : "Upload attachment"}
       </Button>
     </>
   );
@@ -4299,7 +4336,7 @@ export function IssueDetail() {
           )}
 
           {!(isMobile && isFromInbox) && (
-            <div className="ml-auto flex items-center gap-0.5 md:hidden shrink-0">
+            <div className="ml-auto flex items-center gap-0.5 lg:hidden shrink-0">
               <Button
                 variant="ghost"
                 size="icon-xs"
@@ -4319,7 +4356,7 @@ export function IssueDetail() {
             </div>
           )}
 
-          <div className="hidden md:flex items-center md:ml-auto shrink-0">
+          <div className="hidden lg:flex items-center lg:ml-auto shrink-0">
             {canArchiveFromInbox && (
               <Button
                 variant="ghost"
@@ -5258,7 +5295,7 @@ export function IssueDetail() {
           onPromptOpenChange={setFileViewerPromptOpen}
         />
       ) : null}
-      <ScrollToBottom />
+      <ScrollToBottom hideOnMobile />
     </div>
     </FileViewerProvider>
   );

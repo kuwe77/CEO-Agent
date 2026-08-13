@@ -419,9 +419,21 @@ export async function readLocalServicePortOwner(port: number) {
 }
 
 export async function readLocalServiceProcessCwd(pid: number) {
-  if (!Number.isInteger(pid) || pid <= 0 || process.platform !== "linux") return null;
+  if (!Number.isInteger(pid) || pid <= 0) return null;
   try {
-    return await fs.readlink(`/proc/${pid}/cwd`);
+    if (process.platform === "linux") {
+      return await fs.readlink(`/proc/${pid}/cwd`);
+    }
+    if (process.platform === "darwin") {
+      const { stdout } = await execFileAsync("lsof", ["-a", "-p", String(pid), "-d", "cwd", "-Fn"]);
+      const cwd = stdout
+        .split("\n")
+        .find((line) => line.startsWith("n"))
+        ?.slice(1)
+        .trim();
+      return cwd || null;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -441,7 +453,7 @@ export async function isLocalServiceProcessInWorkspace(processCwd: string, works
 }
 
 export async function isLocalServiceRegistryCwdCompatible(processCwd: string | null, workspaceCwd: string) {
-  if (!processCwd) return process.platform !== "linux";
+  if (!processCwd) return process.platform === "win32";
   return isLocalServiceProcessInWorkspace(processCwd, workspaceCwd);
 }
 

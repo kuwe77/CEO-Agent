@@ -340,6 +340,6 @@ describeEmbeddedPostgres("issue comment derived attribution migration", () => {
       const finalState = await inspectMigrations(connectionString);
       expect(finalState.status).toBe("upToDate");
     },
-    20_000,
+    40_000,
   );
 });

@@ -1930,15 +1930,15 @@ function IssueChatAssistantMessage({
           {isFoldable ? (
             <button
               type="button"
-              className="group flex w-full items-center gap-2 py-0.5 text-left"
+              className="group flex w-full flex-wrap items-center gap-x-2 gap-y-0.5 py-0.5 text-left sm:flex-nowrap"
               onClick={() => setFolded((v) => !v)}
             >
-              <span className="text-sm font-medium text-foreground">{authorName}</span>
+              <span className="shrink-0 whitespace-nowrap text-sm font-medium text-foreground">{authorName}</span>
               <SourceTrustBadge sourceTrust={sourceTrust} artifactLabel="comment" />
-              <span className="text-xs text-muted-foreground/60">{chainOfThoughtLabel?.toLowerCase()}</span>
-              <span className="ml-auto flex items-center gap-1.5">
+              <span className="order-3 basis-full text-xs text-muted-foreground/80 sm:order-none sm:basis-auto">{chainOfThoughtLabel?.toLowerCase()}</span>
+              <span className="ml-auto flex shrink-0 items-center gap-1.5">
                 {message.createdAt ? (
-                  <span className="text-(length:--text-micro) text-muted-foreground/50">
+                  <span className="text-(length:--text-micro) text-muted-foreground/70">
                     {commentDateLabel(message.createdAt)}
                   </span>
                 ) : null}
@@ -4397,6 +4397,22 @@ export function IssueChatThread({
   const latestSettleTimeoutsRef = useRef<number[]>([]);
   const latestSettleCleanupRef = useRef<(() => void) | null>(null);
   const [bottomSpacerHeight, setBottomSpacerHeight] = useState(0);
+  const [composerClearanceHeight, setComposerClearanceHeight] = useState(0);
+  useLayoutEffect(() => {
+    const composerElement = composerViewportAnchorRef.current;
+    if (!showComposer || !composerElement) {
+      setComposerClearanceHeight(0);
+      return;
+    }
+    const updateClearance = () => {
+      setComposerClearanceHeight(Math.ceil(composerElement.getBoundingClientRect().height));
+    };
+    updateClearance();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(updateClearance);
+    observer.observe(composerElement);
+    return () => observer.disconnect();
+  }, [showComposer]);
   const displayLiveRuns = useMemo(() => {
     const deduped = new Map<string, LiveRunForIssue>();
     for (const run of liveRuns) {
@@ -5119,7 +5135,7 @@ export function IssueChatThread({
                 <div
                   aria-hidden
                   data-testid="issue-chat-bottom-spacer"
-                  style={{ height: bottomSpacerHeight }}
+                  style={{ height: Math.max(bottomSpacerHeight, composerClearanceHeight) }}
                 />
               ) : null}
             </div>
@@ -5136,7 +5152,7 @@ export function IssueChatThread({
           <div
             ref={composerViewportAnchorRef}
             data-testid="issue-chat-composer-dock"
-            className="sticky bottom-(--sz-calc-8) z-20 space-y-2 bg-gradient-to-t from-background via-background/95 to-background/0 pt-6"
+            className="space-y-2 border-t border-border/60 bg-background pt-3"
           >
             <IssueChatComposer
               ref={composerRef}

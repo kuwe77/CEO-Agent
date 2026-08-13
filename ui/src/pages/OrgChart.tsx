@@ -22,6 +22,7 @@ const GAP_Y = 80;
 const PADDING = 60;
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 2;
+const MIN_READABLE_INITIAL_ZOOM = 0.75;
 const TOUCH_MOVE_THRESHOLD = 6;
 
 // ── Tree layout types ───────────────────────────────────────────────────
@@ -137,6 +138,10 @@ function clampZoom(value: number): number {
   return Math.min(Math.max(value, MIN_ZOOM), MAX_ZOOM);
 }
 
+export function readableInitialZoom(value: number): number {
+  return Math.max(MIN_READABLE_INITIAL_ZOOM, Math.min(MAX_ZOOM, value));
+}
+
 function touchPoint(touch: React.Touch): Point {
   return { x: touch.clientX, y: touch.clientY };
 }
@@ -250,10 +255,11 @@ export function OrgChart() {
     const containerW = container.clientWidth;
     const containerH = container.clientHeight;
 
-    // Fit chart to container
+    // Keep the initial view readable. The founder can still use "Fit chart"
+    // to see the whole topology at a smaller scale when needed.
     const scaleX = (containerW - 40) / bounds.width;
     const scaleY = (containerH - 40) / bounds.height;
-    const fitZoom = Math.min(scaleX, scaleY, 1);
+    const fitZoom = readableInitialZoom(Math.min(scaleX, scaleY, 1));
 
     const chartW = bounds.width * fitZoom;
     const chartH = bounds.height * fitZoom;
@@ -518,6 +524,14 @@ export function OrgChart() {
           >
             <Maximize2 className="h-4 w-4 sm:h-3.5 sm:w-3.5" />
           </button>
+        </div>
+
+        <div
+          data-testid="org-chart-pan-hint"
+          className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-md border border-border/70 bg-background/90 px-2.5 py-1.5 text-(length:--text-nano) font-medium text-muted-foreground shadow-sm"
+        >
+          <span className="hidden sm:inline">Drag to pan · Scroll or pinch to zoom</span>
+          <span className="sm:hidden">Drag to pan · Pinch to zoom</span>
         </div>
 
         {/* SVG layer for edges */}

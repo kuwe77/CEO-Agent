@@ -121,6 +121,7 @@ describe("worktree instance cleanup", () => {
     const instanceRoot = path.join(worktreesDir, "instances", instanceId);
     await fs.mkdir(path.join(instanceRoot, "db"), { recursive: true });
     await fs.writeFile(path.join(instanceRoot, "marker"), "remove me", "utf8");
+    const canonicalInstanceRoot = await fs.realpath(instanceRoot);
     await writeWorkspaceEnv(workspacePath, worktreesDir, instanceId);
 
     const pointer = await readWorktreeInstancePointer(workspacePath);
@@ -133,7 +134,7 @@ describe("worktree instance cleanup", () => {
       worktreesDir,
     });
 
-    expect(result).toMatchObject({ status: "removed", instanceRoot });
+    expect(result).toMatchObject({ status: "removed", instanceRoot: canonicalInstanceRoot });
     await expect(fs.stat(instanceRoot)).rejects.toMatchObject({ code: "ENOENT" });
   });
 
@@ -197,6 +198,7 @@ describe("worktree instance cleanup", () => {
     const workspacePath = await makeTempRoot("paperclip-cleanup-workspace-");
     const instanceRoot = path.join(worktreesDir, "instances", "ordered-cleanup");
     await fs.mkdir(path.join(instanceRoot, "db"), { recursive: true });
+    const canonicalInstanceRoot = await fs.realpath(instanceRoot);
     await writeWorkspaceEnv(workspacePath, worktreesDir, "ordered-cleanup");
     const calls: string[] = [];
 
@@ -210,7 +212,7 @@ describe("worktree instance cleanup", () => {
       worktreesDir,
       dependencies: {
         stopEmbeddedPostgres: async (dataDir) => {
-          expect(dataDir).toBe(path.join(instanceRoot, "db"));
+          expect(dataDir).toBe(path.join(canonicalInstanceRoot, "db"));
           expect(await fs.stat(instanceRoot)).toBeDefined();
           calls.push("stop");
           return true;

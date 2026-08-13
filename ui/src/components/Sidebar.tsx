@@ -178,7 +178,7 @@ export function Sidebar() {
         ) : null}
       </div>
 
-      <nav className="flex-1 min-h-0 overflow-y-auto scrollbar-auto-hide flex flex-col gap-4 pointer-coarse:gap-3 px-3 py-2">
+      <nav className="flex-1 min-h-0 overflow-y-auto scrollbar-auto-hide flex flex-col gap-2 pointer-coarse:gap-3 px-3 py-2">
         <div className="flex flex-col gap-0.5">
           {/* New Task button aligned with nav items */}
           {(() => {

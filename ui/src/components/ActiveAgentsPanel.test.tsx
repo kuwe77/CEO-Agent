@@ -156,6 +156,9 @@ describe("ActiveAgentsPanel", () => {
       anchor.textContent?.includes("more active/recent"),
     );
     expect(moreLink?.getAttribute("href")).toBe("/dashboard/live");
+    expect(
+      (container.querySelector('[data-testid="active-agents-grid"]') as HTMLElement).style.gridTemplateColumns,
+    ).toContain("21rem");
 
     await act(async () => {
       root.unmount();
@@ -195,6 +198,37 @@ describe("ActiveAgentsPanel", () => {
     });
   });
 
+  it("uses content-sized mobile cards with a bounded transcript preview", async () => {
+    const root = createRoot(container);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <ActiveAgentsPanel companyId="company-1" responsiveCardHeight minCardWidth="28rem" />
+        </QueryClientProvider>,
+      );
+    });
+    await flushReact();
+
+    const card = container.querySelector('[data-run-card-variant="default"]');
+    expect(card?.className).toContain("h-auto");
+    expect(card?.className).not.toContain("sm:h-(--sz-420px)");
+    expect(card?.className).not.toContain("h-(--sz-320px)");
+    expect(container.querySelector('[data-testid="agent-run-card-body"]')?.className)
+      .toContain("max-h-40 sm:max-h-48");
+    expect(
+      (container.querySelector('[data-testid="active-agents-grid"]') as HTMLElement).style.gridTemplateColumns,
+    ).toContain("28rem");
+    expect(container.querySelector('[data-testid="active-agents-grid"]')?.className).toContain("items-start");
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
   it("loads exact visible run issues so task names render even when the issue list page would miss them", async () => {
     mockHeartbeatsApi.liveRunsForCompany.mockResolvedValue([
       createIssueRun(1, "65274215-0000-4000-8000-000000000000"),
@@ -227,6 +261,32 @@ describe("ActiveAgentsPanel", () => {
       expect(issueLink?.textContent).toBe("PAP-3562 - Phase 4B: Implement LLM Wiki distillation UI");
       expect(issueLink?.getAttribute("href")).toBe("/issues/PAP-3562");
     });
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("renders compact operational summaries without embedded transcripts", async () => {
+    const root = createRoot(container);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <ActiveAgentsPanel companyId="company-1" variant="compact" />
+        </QueryClientProvider>,
+      );
+    });
+    await flushReact();
+
+    expect(container.querySelector('[data-run-card-variant="compact"]')).not.toBeNull();
+    expect(container.textContent).not.toContain("Run output");
+    expect(
+      (container.querySelector('[data-testid="active-agents-grid"]') as HTMLElement).style.gridTemplateColumns,
+    ).toContain("12.5rem");
 
     await act(async () => {
       root.unmount();

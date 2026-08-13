@@ -111,15 +111,39 @@ export function HireAgentPayload({ payload }: { payload: Record<string, unknown>
 
 export function CeoStrategyPayload({ payload }: { payload: Record<string, unknown> }) {
   const plan = payload.plan ?? payload.description ?? payload.strategy ?? payload.text;
+  const recommendation = typeof payload.recommendation === "string" ? payload.recommendation.trim() : "";
+  const confidence = typeof payload.confidence === "number" && Number.isFinite(payload.confidence)
+    ? `${Math.round(payload.confidence * 100)}%`
+    : null;
+  const scope = typeof payload.scope === "string" ? payload.scope.trim() : "";
+  const decisionRequired = typeof payload.decisionRequired === "string" ? payload.decisionRequired.trim() : "";
+  const doesNotAuthorize = typeof payload.doesNotAuthorize === "string" ? payload.doesNotAuthorize.trim() : "";
+  const issueIdentifier = typeof payload.issueIdentifier === "string" ? payload.issueIdentifier.trim() : "";
+  const hasDecisionBrief = Boolean(recommendation || confidence || scope || decisionRequired || doesNotAuthorize || issueIdentifier);
   return (
-    <div className="mt-3 space-y-1.5 text-sm">
+    <div className="mt-3 space-y-3 text-sm">
       <PayloadField label="Title" value={payload.title} />
+      {hasDecisionBrief && (
+        <div className="grid gap-3 rounded-lg border border-border/70 bg-muted/20 p-3 sm:grid-cols-2">
+          {recommendation && (
+            <div className="rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-2.5 sm:col-span-2">
+              <p className="text-(length:--text-micro) font-medium uppercase tracking-(--tracking-label) text-amber-700 dark:text-amber-300">Recommendation</p>
+              <p className="mt-1 font-medium leading-6 text-foreground">{recommendation}</p>
+            </div>
+          )}
+          <PayloadField label="Confidence" value={confidence} />
+          <PayloadField label="Scope" value={scope} />
+          <div className="sm:col-span-2"><PayloadField label="Decision required" value={decisionRequired} /></div>
+          <div className="sm:col-span-2"><PayloadField label="Does not authorize" value={doesNotAuthorize} /></div>
+          <PayloadField label="Related work" value={issueIdentifier} />
+        </div>
+      )}
       {!!plan && (
         <div className="mt-2 rounded-md bg-muted/40 px-3 py-2 text-sm text-muted-foreground whitespace-pre-wrap font-mono text-xs max-h-48 overflow-y-auto">
           {String(plan)}
         </div>
       )}
-      {!plan && (
+      {!plan && !hasDecisionBrief && (
         <pre className="mt-2 rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground overflow-x-auto max-h-48">
           {JSON.stringify(payload, null, 2)}
         </pre>

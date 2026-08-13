@@ -2,12 +2,16 @@ import { createContext, useCallback, useContext, useState, type ReactNode } from
 
 const STORAGE_KEY = "paperclip:panel-visible";
 
+interface SetPanelVisibleOptions {
+  persist?: boolean;
+}
+
 interface PanelContextValue {
   panelContent: ReactNode | null;
   panelVisible: boolean;
   openPanel: (content: ReactNode) => void;
   closePanel: () => void;
-  setPanelVisible: (visible: boolean) => void;
+  setPanelVisible: (visible: boolean, options?: SetPanelVisibleOptions) => void;
   togglePanelVisible: () => void;
 }
 
@@ -42,9 +46,9 @@ export function PanelProvider({ children }: { children: ReactNode }) {
     setPanelContent(null);
   }, []);
 
-  const setPanelVisible = useCallback((visible: boolean) => {
+  const setPanelVisible = useCallback((visible: boolean, { persist = true }: SetPanelVisibleOptions = {}) => {
     setPanelVisibleState(visible);
-    writePreference(visible);
+    if (persist) writePreference(visible);
   }, []);
 
   const togglePanelVisible = useCallback(() => {

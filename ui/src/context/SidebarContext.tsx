@@ -41,7 +41,9 @@ interface SidebarContextValue {
 
 const SidebarContext = createContext<SidebarContextValue | null>(null);
 
-const MOBILE_BREAKPOINT = 768;
+// At tablet widths the persistent 240px rail starves primary operating
+// surfaces. Keep the drawer/bottom-nav shell through the `lg` breakpoint.
+const MOBILE_BREAKPOINT = 1024;
 const COLLAPSED_STORAGE_KEY = "paperclip.sidebar.collapsed";
 const PEEK_POINTER_QUERY = "(hover: hover) and (pointer: fine)";
 

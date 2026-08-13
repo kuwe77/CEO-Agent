@@ -173,6 +173,19 @@ describe("Sidebar", () => {
     });
   });
 
+  it("keeps sidebar section gaps compact while preserving coarse-pointer spacing", async () => {
+    mockInstanceSettingsApi.getExperimental.mockResolvedValue({ enableIsolatedWorkspaces: false });
+    const root = await renderSidebar();
+
+    const nav = container.querySelector("nav");
+    expect(nav?.className).toContain("gap-2");
+    expect(nav?.className).toContain("pointer-coarse:gap-3");
+
+    flushSync(() => {
+      root.unmount();
+    });
+  });
+
   it("renders plugin sidebar launchers inside the Work section", async () => {
     mockInstanceSettingsApi.getExperimental.mockResolvedValue({
       enableIsolatedWorkspaces: false,

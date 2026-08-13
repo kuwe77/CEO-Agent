@@ -117,12 +117,14 @@ export function Layout() {
   // app nav collapses to its rail throughout the Skills Store section (PAP-10879).
   const isSkillsRoute = isSkillsStoreRoute(location.pathname, companyPrefix);
   const onboardingTriggered = useRef(false);
-  const lastMainScrollTop = useRef(0);
+
   const previousPathname = useRef<string | null>(null);
   const mainContentRef = useRef<HTMLElement | null>(null);
   const scrollMemory = useRef(new NavigationScrollMemory());
   const activeScrollKey = useRef<string>(location.key);
-  const [mobileNavVisible, setMobileNavVisible] = useState(true);
+  // On mobile the navigation occupies a normal layout row below the main
+  // scroller, so it never covers card footers or list rows.
+  const mobileNavVisible = true;
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const matchedCompany = useMemo(() => {
     if (!companyPrefix) return null;
@@ -378,14 +380,6 @@ export function Layout() {
     onGoToInbox: () => navigate("/inbox"),
   });
 
-  useEffect(() => {
-    if (!isMobile) {
-      setMobileNavVisible(true);
-      return;
-    }
-    lastMainScrollTop.current = 0;
-    setMobileNavVisible(true);
-  }, [isMobile]);
 
   // Swipe gesture to open/close sidebar on mobile
   useEffect(() => {
@@ -432,43 +426,11 @@ export function Layout() {
     };
   }, [isMobile, sidebarOpen, setSidebarOpen]);
 
-  const updateMobileNavVisibility = useCallback((currentTop: number) => {
-    const delta = currentTop - lastMainScrollTop.current;
-
-    if (currentTop <= 24) {
-      setMobileNavVisible(true);
-    } else if (delta > 8) {
-      setMobileNavVisible(false);
-    } else if (delta < -8) {
-      setMobileNavVisible(true);
-    }
-
-    lastMainScrollTop.current = currentTop;
-  }, []);
-
-  useEffect(() => {
-    if (!isMobile) {
-      setMobileNavVisible(true);
-      lastMainScrollTop.current = 0;
-      return;
-    }
-
-    const onScroll = () => {
-      updateMobileNavVisibility(window.scrollY || document.documentElement.scrollTop || 0);
-    };
-
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-    };
-  }, [isMobile, updateMobileNavVisibility]);
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
 
-    document.body.style.overflow = isMobile ? "visible" : "clip";
+    document.body.style.overflow = "clip";
 
     return () => {
       document.body.style.overflow = previousOverflow;
@@ -537,11 +499,9 @@ export function Layout() {
       <div
       className={cn(
         "bg-background text-foreground pt-(--sz-safe-top)",
-        // overflow-x-clip on mobile keeps a stray wide descendant from making the
-        // whole viewport scroll horizontally. clip (not hidden) leaves overflow-y
-        // computed as visible, so native body scroll + the sticky breadcrumb keep
-        // working.
-        isMobile ? "min-h-dvh overflow-x-clip" : "flex h-dvh flex-col overflow-clip",
+        // Mobile uses the same bounded application shell as desktop. The main
+        // region owns vertical scrolling while the navigation remains in flow.
+        isMobile ? "flex h-dvh flex-col overflow-x-clip overflow-clip" : "flex h-dvh flex-col overflow-clip",
       )}
       >
       <a
@@ -552,7 +512,7 @@ export function Layout() {
       </a>
       <WorktreeBanner />
       <DevRestartBanner devServer={health?.devServer} />
-      <div className={cn("min-h-0 flex-1", isMobile ? "w-full" : "flex overflow-clip")}>
+      <div className={cn("min-h-0 flex-1", isMobile ? "flex w-full" : "flex overflow-clip")}>
         {isMobile && sidebarOpen && (
           <button
             type="button"
@@ -606,10 +566,10 @@ export function Layout() {
           <SecondarySidebar>{secondarySidebar}</SecondarySidebar>
         ) : null}
 
-        <div className={cn("flex min-w-0 flex-col", isMobile ? "w-full" : "h-full flex-1")}>
+        <div className={cn("flex min-w-0 flex-col", isMobile ? "h-full min-h-0 w-full flex-1" : "h-full flex-1")}>
           <div
             className={cn(
-              isMobile && "sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85",
+              isMobile && "z-20 shrink-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85",
             )}
           >
             <StandaloneBrowserControls mobile={isMobile} />
@@ -620,7 +580,7 @@ export function Layout() {
               </div>
             ) : null}
           </div>
-          <div className={cn(isMobile ? "block" : "flex flex-1 min-h-0")}>
+          <div className={cn(isMobile ? "flex flex-1 min-h-0" : "flex flex-1 min-h-0")}>
             <main
               id="main-content"
               ref={mainContentRef}
@@ -631,7 +591,7 @@ export function Layout() {
                 // changes (e.g. switching skill-detail tabs) don't widen/shift
                 // when the vertical scrollbar appears or disappears (PAP-10907).
                 isMobile
-                  ? "overflow-visible pb-(--sz-calc-14)"
+                  ? "min-h-0 overflow-auto pb-4"
                   : "overflow-auto [scrollbar-gutter:stable]",
               )}
             >

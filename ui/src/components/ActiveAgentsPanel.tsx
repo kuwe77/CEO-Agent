@@ -63,6 +63,9 @@ interface ActiveAgentsPanelProps {
   emptyMessage?: string;
   queryScope?: string;
   showMoreLink?: boolean;
+  variant?: "default" | "compact";
+  responsiveCardHeight?: boolean;
+  minCardWidth?: string;
 }
 
 export function ActiveAgentsPanel({
@@ -76,6 +79,9 @@ export function ActiveAgentsPanel({
   emptyMessage = "No recent agent runs.",
   queryScope = "dashboard",
   showMoreLink = true,
+  variant = "default",
+  responsiveCardHeight = false,
+  minCardWidth,
 }: ActiveAgentsPanelProps) {
   const liveRunsQueryKey = [...queryKeys.liveRuns(companyId), queryScope, { minRunCount, fetchLimit }] as const;
   const sharedLiveRuns = useSharedPollingQuery({
@@ -137,7 +143,13 @@ export function ActiveAgentsPanel({
           <p className="text-sm text-muted-foreground">{emptyMessage}</p>
         </div>
       ) : (
-        <div className={cn("grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4", gridClassName)}>
+        <div
+          data-testid="active-agents-grid"
+          className={cn("grid items-start gap-4", gridClassName)}
+          style={{
+            gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${minCardWidth ?? (variant === "compact" ? "12.5rem" : "21rem")}), 1fr))`,
+          }}
+        >
           {visibleRuns.map((run) => (
             <AgentRunCard
               key={run.id}
@@ -148,6 +160,8 @@ export function ActiveAgentsPanel({
               hasOutput={hasOutputForRun(run.id)}
               isActive={isRunActive(run)}
               className={cardClassName}
+              variant={variant}
+              responsiveCardHeight={responsiveCardHeight}
             />
           ))}
         </div>
@@ -171,6 +185,8 @@ const AgentRunCard = memo(function AgentRunCard({
   hasOutput,
   isActive,
   className,
+  variant,
+  responsiveCardHeight,
 }: {
   companyId: string;
   run: LiveRunForIssue;
@@ -179,10 +195,19 @@ const AgentRunCard = memo(function AgentRunCard({
   hasOutput: boolean;
   isActive: boolean;
   className?: string;
+  variant: "default" | "compact";
+  responsiveCardHeight: boolean;
 }) {
   return (
-    <div className={cn(
-      "flex h-(--sz-320px) flex-col overflow-hidden rounded-xl border shadow-sm",
+    <div
+      data-run-card-variant={variant}
+      className={cn(
+      "flex flex-col overflow-hidden rounded-xl border shadow-sm",
+      variant === "default" && (
+        responsiveCardHeight
+          ? "h-auto"
+          : "h-(--sz-320px)"
+      ),
       isActive
         ? "border-blue-500/25 bg-blue-500/[0.04] shadow-(--shadow-extract-1)"
         : "border-border bg-background/70",
@@ -202,7 +227,7 @@ const AgentRunCard = memo(function AgentRunCard({
               )}
               <Identity name={run.agentName} size="sm" className="[&>span:last-child]:!text-(length:--text-micro)" />
             </div>
-            <div className="mt-2 flex items-center gap-2 text-(length:--text-micro) text-muted-foreground">
+            <div className="mt-2 flex items-center gap-2 text-xs text-foreground/70">
               <span>{isActive ? "Live now" : run.finishedAt ? `Finished ${relativeTime(run.finishedAt)}` : `Started ${relativeTime(run.createdAt)}`}</span>
             </div>
           </div>
@@ -237,14 +262,22 @@ const AgentRunCard = memo(function AgentRunCard({
         )}
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">
-        <RunChatSurface
-          run={run}
-          transcript={transcript}
-          hasOutput={hasOutput}
-          companyId={companyId}
-        />
-      </div>
+      {variant === "default" ? (
+        <div
+          data-testid="agent-run-card-body"
+          className={cn(
+            "min-h-0 flex-1 overflow-y-auto p-3",
+            responsiveCardHeight && "max-h-40 sm:max-h-48",
+          )}
+        >
+          <RunChatSurface
+            run={run}
+            transcript={transcript}
+            hasOutput={hasOutput}
+            companyId={companyId}
+          />
+        </div>
+      ) : null}
     </div>
   );
 });

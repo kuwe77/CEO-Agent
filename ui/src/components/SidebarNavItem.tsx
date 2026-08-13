@@ -162,7 +162,7 @@ export function SidebarNavItem({
           />
         )}
       </span>
-      <span className={rail ? SIDEBAR_RAIL_HIDDEN_LABEL : cn("min-w-0 flex-1 truncate", labelClassName)}>{label}</span>
+      <span className={rail ? SIDEBAR_RAIL_HIDDEN_LABEL : cn("min-w-0 flex-1", !labelClassName && "truncate", labelClassName)}>{label}</span>
       {!rail && trailing}
       {!rail && textBadge && (
         <Badge variant="ghost"

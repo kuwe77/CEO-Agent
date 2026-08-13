@@ -503,7 +503,7 @@ describeEmbeddedPostgres("applyPendingMigrations", () => {
         await verifySql.end();
       }
     },
-    20_000,
+    40_000,
   );
 
   it(

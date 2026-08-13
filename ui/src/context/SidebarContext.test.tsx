@@ -209,6 +209,18 @@ describe("SidebarContext", () => {
   });
 
   describe("mobile gating", () => {
+    it("uses the drawer layout at 768px so tablet content retains a usable workspace", () => {
+      // The component's first paint derives from `innerWidth`; this captures
+      // the boundary independently of the generic matchMedia mock.
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        writable: true,
+        value: 768,
+      });
+      active = renderProvider();
+      expect(capturedValue?.isMobile).toBe(true);
+    });
+
     it("never reports collapsed on mobile even with a collapsed pin", () => {
       localStorage.setItem(COLLAPSED_STORAGE_KEY, "1");
       setViewport({ mobile: true });

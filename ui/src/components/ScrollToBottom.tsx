@@ -3,6 +3,11 @@ import { ArrowDown } from "lucide-react";
 import { usePanel } from "../context/PanelContext";
 import { cn } from "../lib/utils";
 
+interface ScrollToBottomProps {
+  /** Pages with dense mobile action rows can retain this desktop shortcut without floating it over controls. */
+  hideOnMobile?: boolean;
+}
+
 function resolveScrollTarget() {
   const mainContent = document.getElementById("main-content");
 
@@ -31,9 +36,9 @@ function distanceFromBottom(target: ReturnType<typeof resolveScrollTarget>) {
 
 /**
  * Floating scroll-to-bottom button that follows the active page scroller.
- * On desktop that is `#main-content`; on mobile it falls back to window/page scroll.
+ * `#main-content` is the application scroller on both desktop and mobile.
  */
-export function ScrollToBottom() {
+export function ScrollToBottom({ hideOnMobile = false }: ScrollToBottomProps) {
   const [visible, setVisible] = useState(false);
   const { panelVisible, panelContent } = usePanel();
 
@@ -74,8 +79,9 @@ export function ScrollToBottom() {
     <button
       onClick={scroll}
       className={cn(
-        "fixed bottom-(--sz-calc-21) right-6 z-40 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background shadow-md hover:bg-accent transition-(--tp-background-color-right) duration-200 md:bottom-6",
-        panelVisible && panelContent && "md:right-(--sz-calc-22)",
+        "fixed bottom-(--sz-calc-21) left-1/2 -translate-x-1/2 z-40 flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background shadow-md hover:bg-accent transition-(--tp-background-color-right) duration-200 lg:bottom-6 lg:left-auto lg:right-6 lg:translate-x-0",
+        hideOnMobile && "hidden lg:flex",
+        panelVisible && panelContent && "lg:right-(--sz-calc-22)",
       )}
       aria-label="Scroll to bottom"
     >

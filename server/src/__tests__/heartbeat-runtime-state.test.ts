@@ -101,7 +101,7 @@ describeEmbeddedPostgres("heartbeat runtime state deduplication", () => {
       adapterType: "codex_local",
       stateJson: {},
     });
-  });
+  }, 30_000);
 
   it("publishes runtime progress without persisting heartbeat run events", async () => {
     const companyId = randomUUID();

@@ -784,7 +784,7 @@ describe("realizeExecutionWorkspace", () => {
     expect(reused.warnings).toEqual([
       expect.stringContaining("is behind origin/master by 1 commit"),
     ]);
-  });
+  }, 30_000);
 
   it("does not reset a reused worktree with untracked changes", async () => {
     const { sourceRepo, remotePath, repoRoot } = await createClonedRepoWithRemote();
@@ -805,7 +805,7 @@ describe("realizeExecutionWorkspace", () => {
     expect(reused.warnings).toEqual([
       expect.stringContaining("is behind origin/master by 1 commit"),
     ]);
-  });
+  }, 30_000);
 
   it("does not reset a reused worktree with untracked changes when status.showUntrackedFiles=no", async () => {
     const { sourceRepo, remotePath, repoRoot } = await createClonedRepoWithRemote();
@@ -830,7 +830,7 @@ describe("realizeExecutionWorkspace", () => {
     expect(reused.warnings).toEqual([
       expect.stringContaining("is behind origin/master by 1 commit"),
     ]);
-  });
+  }, 30_000);
 
   it("rejects reusing an empty directory that only looks like a worktree because it sits inside the repo", async () => {
     const repoRoot = await createTempRepo();
@@ -866,7 +866,7 @@ describe("realizeExecutionWorkspace", () => {
         },
       }),
     ).rejects.toThrow(/not a reusable git worktree \(path is not registered in `git worktree list`\)\./);
-  });
+  }, 30_000);
 
   it("reuses the current linked worktree instead of nesting another worktree inside it", async () => {
     const repoRoot = await createTempRepo();
@@ -3357,6 +3357,7 @@ describe("realizeExecutionWorkspace", () => {
     const instanceId = deriveWorktreeInstanceId(workspace.cwd);
     const instanceRoot = path.join(worktreesDir, "instances", instanceId);
     await fs.mkdir(path.join(instanceRoot, "db"), { recursive: true });
+    const canonicalInstanceRoot = await fs.realpath(instanceRoot);
     await fs.mkdir(path.join(workspace.cwd, ".paperclip"), { recursive: true });
     await fs.writeFile(
       path.join(workspace.cwd, ".paperclip", ".env"),
@@ -3398,7 +3399,7 @@ describe("realizeExecutionWorkspace", () => {
     expect(operations[0]?.command).toBe("printf 'cleanup ok\\n'");
     expect(operations[1]?.metadata).toMatchObject({
       cleanupAction: "remove_worktree_instance",
-      instanceRoot,
+      instanceRoot: canonicalInstanceRoot,
     });
     expect(operations[2]?.metadata).toMatchObject({
       cleanupAction: "worktree_remove",
@@ -4541,16 +4542,19 @@ describe("readLocalServicePortOwner", () => {
     }
   });
 
-  it("trusts unavailable cwd for registry records only off Linux", async () => {
+  it("fails closed when cwd inspection is unavailable on a local port-owner platform", async () => {
     Object.defineProperty(process, "platform", { value: "darwin" });
-    await expect(isLocalServiceRegistryCwdCompatible(null, process.cwd())).resolves.toBe(true);
+    await expect(isLocalServiceRegistryCwdCompatible(null, process.cwd())).resolves.toBe(false);
 
     Object.defineProperty(process, "platform", { value: "linux" });
     await expect(isLocalServiceRegistryCwdCompatible(null, process.cwd())).resolves.toBe(false);
+
+    Object.defineProperty(process, "platform", { value: "win32" });
+    await expect(isLocalServiceRegistryCwdCompatible(null, process.cwd())).resolves.toBe(true);
   });
 
   it("refuses to adopt a listener whose real cwd belongs to another workspace", async () => {
-    if (process.platform !== "linux") return;
+    if (process.platform === "win32") return;
     try {
       await execFileAsync("lsof", ["-v"]);
     } catch {

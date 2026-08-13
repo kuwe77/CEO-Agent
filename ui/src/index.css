@@ -3,7 +3,7 @@
 
 @font-face {
   font-family: "InterVariable";
-  src: url("../fonts/InterVariable.woff2") format("woff2");
+  src: url("/fonts/InterVariable.woff2") format("woff2");
   font-display: swap;
   font-style: normal;
   font-weight: 100 900;
@@ -11,7 +11,7 @@
 
 @font-face {
   font-family: "InterVariable";
-  src: url("../fonts/InterVariable-Italic.woff2") format("woff2");
+  src: url("/fonts/InterVariable-Italic.woff2") format("woff2");
   font-display: swap;
   font-style: italic;
   font-weight: 100 900;
@@ -2551,11 +2551,6 @@ span.paperclip-mention-chip[data-mention-kind="external-object"] {
   background-color: color-mix(in oklab, var(--ceo-command-accent) 16%, var(--ceo-command-panel));
 }
 
-.ceo-command-center__run-card {
-  background: var(--ceo-command-panel-strong) !important;
-  border-color: var(--ceo-command-line) !important;
-}
-
 @media (max-width: 40rem) {
   .ceo-command-center__routing-row {
     align-items: start;
@@ -2574,6 +2569,9 @@ span.paperclip-mention-chip[data-mention-kind="external-object"] {
 
 /* CEO Agent — specialist provisioning and operating roster. */
 .ceo-agent-studio {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
   background: var(--ceo-command-stage);
   color: var(--ceo-command-panel-text);
   display: grid;
@@ -3308,8 +3306,8 @@ span.paperclip-mention-chip[data-mention-kind="external-object"] {
   color: var(--ceo-os-paper-bright);
 }
 
-.ceo-command-center__panel,
-.ceo-command-center__plugin {
+.ceo-command-center .ceo-command-center__command-grid > .ceo-command-center__panel,
+.ceo-command-center .ceo-command-center__plugin {
   color: var(--ceo-os-ink);
   background: var(--ceo-os-paper);
   border-color: transparent;
@@ -3332,16 +3330,64 @@ span.paperclip-mention-chip[data-mention-kind="external-object"] {
   border-color: rgb(23 24 23 / 12%);
 }
 
-.ceo-command-center__run-card {
+.ceo-command-center .ceo-command-center__run-card {
+  color: var(--ceo-os-ink);
   background: var(--ceo-os-paper-bright);
   border-color: rgb(23 24 23 / 12%);
+}
+
+.ceo-command-center__run-card .bg-background\/60,
+.ceo-command-center__run-card .bg-background\/70 {
+  background-color: rgb(23 24 23 / 4%);
+}
+
+.ceo-command-center__command-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ceo-command-center__work,
+.ceo-command-center__evidence,
+.ceo-command-center__operations,
+.ceo-command-center__plugin-grid,
+.ceo-command-center__audit {
+  min-width: 0;
+}
+
+.ceo-command-center__plugin-grid {
+  align-self: start;
 }
 
 .ceo-command-center__audit {
   grid-column: 1 / -1;
 }
 
+@media (min-width: 80rem) {
+  .ceo-command-center__command-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .ceo-command-center__work,
+  .ceo-command-center__evidence {
+    grid-column: span 6;
+  }
+
+  .ceo-command-center__operations {
+    grid-column: 1 / -1;
+  }
+
+  .ceo-command-center__plugin-grid {
+    grid-column: span 4;
+  }
+
+  .ceo-command-center__command-grid:has(> .ceo-command-center__plugin-grid) > .ceo-command-center__audit {
+    grid-column: span 8;
+  }
+}
+
 .ceo-agent-studio {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
   display: grid;
   gap: clamp(2.25rem, 5vw, 4.5rem);
   padding: clamp(1.25rem, 3vw, 2.75rem);
@@ -3376,6 +3422,10 @@ span.paperclip-mention-chip[data-mention-kind="external-object"] {
 .ceo-agent-studio__intro {
   color: var(--ceo-os-muted);
   font-size: 0.92rem;
+}
+
+.ceo-agent-studio .ceo-agent-studio__intro strong {
+  color: inherit;
 }
 
 .ceo-agent-studio__primary-action {
@@ -3436,6 +3486,7 @@ span.paperclip-mention-chip[data-mention-kind="external-object"] {
 }
 
 .ceo-agent-studio__agent-grid {
+  min-width: 0;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 21rem), 1fr));
 }
 
@@ -3550,6 +3601,14 @@ span.paperclip-mention-chip[data-mention-kind="external-object"] {
 .ceo-agent-studio__technical-grid {
   display: grid;
   gap: 1rem;
+  min-width: 0;
+}
+
+.ceo-agent-studio__runtime,
+.ceo-agent-studio__topology,
+.ceo-agent-studio__readiness {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .ceo-agent-studio__runtime {

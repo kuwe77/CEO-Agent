@@ -241,4 +241,26 @@ describe("Projects", () => {
     expect(hiddenDescriptionLine).not.toBeNull();
     expect(hiddenDescriptionLine?.className).toContain("min-h-4");
   });
+
+  it("keeps a long project name and description readable on a narrow row", async () => {
+    mockProjectsApi.list.mockResolvedValue([
+      makeProject({
+        name: "CEO Agent Platform",
+        description: "Real internal operating system for founder-directed work",
+      }),
+    ]);
+    await renderProjects();
+
+    const projectLink = Array.from(container.querySelectorAll<HTMLAnchorElement>("a")).find((link) =>
+      link.textContent?.includes("CEO Agent Platform"),
+    );
+    const title = projectLink?.querySelector<HTMLElement>('span[title="CEO Agent Platform"]');
+    const subtitle = projectLink?.querySelector<HTMLElement>("p");
+
+    expect(title?.className).toContain("whitespace-normal");
+    expect(title?.className).toContain("break-words");
+    expect(subtitle?.className).toContain("whitespace-normal");
+    expect(subtitle?.className).toContain("break-words");
+    expect(projectLink?.className).toContain("flex-wrap");
+  });
 });

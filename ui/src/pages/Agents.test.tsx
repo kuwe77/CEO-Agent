@@ -420,7 +420,7 @@ describe("Agents", () => {
     const row = findAgentRow(container, "Paperclip Engineer With A Much Longer Display Name");
     expect(row).not.toBeNull();
     expect(row?.querySelector(".sm\\:hidden")).toBeNull();
-    expect(row?.querySelector(".hidden.sm\\:flex")).not.toBeNull();
+    expect(row?.querySelector(".hidden.lg\\:flex")).not.toBeNull();
     expect(row?.querySelector(".flex-1.hidden.xl\\:block")).not.toBeNull();
     expect(row?.classList.contains("text-foreground/55")).toBe(false);
     expect(row?.classList.contains("sm:text-foreground/55")).toBe(true);

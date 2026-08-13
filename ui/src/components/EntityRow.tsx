@@ -15,6 +15,7 @@ interface EntityRowProps {
   meta?: ReactNode;
   metaSpacerClassName?: string;
   trailing?: ReactNode;
+  trailingClassName?: string;
   selected?: boolean;
   to?: string;
   onClick?: () => void;
@@ -48,6 +49,7 @@ export function EntityRow({
   meta,
   metaSpacerClassName,
   trailing,
+  trailingClassName,
   selected,
   to,
   onClick,
@@ -119,7 +121,7 @@ export function EntityRow({
         </div>
       )}
       {meta && <div className={cn("flex-1", metaSpacerClassName)} />}
-      {trailing && <div className="flex items-center gap-2 shrink-0">{trailing}</div>}
+      {trailing && <div className={cn("flex items-center gap-2 shrink-0", trailingClassName)}>{trailing}</div>}
     </>
   );
 

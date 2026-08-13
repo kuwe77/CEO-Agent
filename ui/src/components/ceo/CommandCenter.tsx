@@ -142,7 +142,7 @@ function WorkInMotion({
   const agentNameById = new Map((agents ?? []).map((agent) => [agent.id, agent.name]));
 
   return (
-    <section className="rounded-lg border border-border bg-card" aria-labelledby="work-in-motion-title">
+    <section className="ceo-command-center__panel ceo-command-center__work rounded-lg border border-border bg-card" aria-labelledby="work-in-motion-title">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
           <h2 id="work-in-motion-title" className="text-sm font-semibold text-foreground">Work in motion</h2>
@@ -179,7 +179,7 @@ function WorkInMotion({
 
 function Evidence({ artifacts, artifactsError }: { artifacts?: CompanyArtifact[]; artifactsError?: boolean }) {
   return (
-    <section className="rounded-lg border border-border bg-card" aria-labelledby="evidence-title">
+    <section className="ceo-command-center__panel ceo-command-center__evidence rounded-lg border border-border bg-card" aria-labelledby="evidence-title">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
           <h2 id="evidence-title" className="text-sm font-semibold text-foreground">Evidence</h2>
@@ -222,7 +222,7 @@ function AuditFeed({
   entityTitleMap,
 }: Pick<CommandCenterProps, "activity" | "activityError" | "agentMap" | "userProfileMap" | "entityNameMap" | "entityTitleMap">) {
   return (
-    <section className="rounded-lg border border-border bg-card" aria-labelledby="audit-title">
+    <section className="ceo-command-center__panel ceo-command-center__audit rounded-lg border border-border bg-card" aria-labelledby="audit-title">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
           <h2 id="audit-title" className="text-sm font-semibold text-foreground">Audit activity</h2>
@@ -304,7 +304,7 @@ export function CommandCenter(props: CommandCenterProps) {
           {sectionLink("/agent-studio", "Open Agent Studio")}
         </div>
 
-        <div className="ceo-command-center__command-grid grid gap-4 xl:grid-cols-2">
+        <div className="ceo-command-center__command-grid grid gap-4">
           <WorkInMotion agents={props.agents} issues={props.issues} issuesError={props.issuesError} />
           <Evidence artifacts={props.artifacts} artifactsError={props.artifactsError} />
 
@@ -326,6 +326,7 @@ export function CommandCenter(props: CommandCenterProps) {
                 title="Active agent runs"
                 emptyMessage="No active or recent agent runs are connected to this company."
                 cardClassName="ceo-command-center__run-card"
+                variant="compact"
               />
             )}
           </section>
@@ -333,7 +334,7 @@ export function CommandCenter(props: CommandCenterProps) {
           <PluginSlotOutlet
             slotTypes={["dashboardWidget"]}
             context={{ companyId: props.companyId }}
-            className="grid gap-4 md:grid-cols-2"
+            className="ceo-command-center__plugin-grid grid gap-4"
             itemClassName="ceo-command-center__plugin p-4"
           />
 

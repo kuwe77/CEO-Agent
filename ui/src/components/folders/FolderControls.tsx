@@ -386,17 +386,21 @@ export function AllUnfiledBanner({
   }
 
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
-      <FolderIcon className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-      <span className="min-w-0 flex-1 text-muted-foreground">
-        Group these {itemLabelPlural} into folders to keep things tidy.
-      </span>
-      <Button size="sm" variant="outline" onClick={onCreateFolder}>
-        Create your first folder
-      </Button>
-      <Button size="icon-sm" variant="ghost" aria-label="Dismiss folder suggestion" onClick={dismiss}>
-        <X className="h-3.5 w-3.5" />
-      </Button>
+    <div className="mb-3 flex flex-col items-start gap-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+      <div className="flex min-w-0 items-start gap-2 sm:flex-1 sm:items-center">
+        <FolderIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground sm:mt-0" />
+        <span className="text-muted-foreground">
+          Group these {itemLabelPlural} into folders to keep things tidy.
+        </span>
+      </div>
+      <div data-testid="folder-nudge-actions" className="flex w-full items-center gap-2 sm:w-auto">
+        <Button className="flex-1 sm:flex-none" size="sm" variant="outline" onClick={onCreateFolder}>
+          Create your first folder
+        </Button>
+        <Button size="icon-sm" variant="ghost" aria-label="Dismiss folder suggestion" onClick={dismiss}>
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
     </div>
   );
 }

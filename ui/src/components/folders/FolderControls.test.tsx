@@ -450,6 +450,9 @@ describe("FolderControls", () => {
     });
 
     expect(container.textContent).toContain("Create your first folder");
+    const actionGroup = container.querySelector<HTMLElement>("[data-testid=folder-nudge-actions]");
+    expect(actionGroup).not.toBeNull();
+    expect(actionGroup?.className).toContain("w-full");
 
     const dismissButton = container.querySelector<HTMLButtonElement>(
       'button[aria-label="Dismiss folder suggestion"]',

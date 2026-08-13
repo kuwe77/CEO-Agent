@@ -113,6 +113,18 @@ describe("buildTopology", () => {
     ]);
   });
 
+  it("wraps wide reporting layers so the technical topology stays bounded", () => {
+    const topology = buildTopology([
+      agent({ id: "ceo", name: "CEO", role: "ceo" }),
+      ...Array.from({ length: 10 }, (_, index) =>
+        agent({ id: `specialist-${index}`, name: `Specialist ${index}`, reportsTo: "ceo" }),
+      ),
+    ]);
+
+    expect(Math.max(...topology.nodes.map((node) => node.position.x))).toBeLessThanOrEqual(864);
+    expect(Math.max(...topology.nodes.map((node) => node.position.y))).toBeGreaterThan(196);
+  });
+
   it("preserves unsaved positions for existing nodes when topology data is reconciled", () => {
     const current = new Map([
       ["ceo", { x: 512, y: 144 }],

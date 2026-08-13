@@ -3,6 +3,10 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
+    // Production builds emit compiled test copies under dist/. Test source only:
+    // discovering both doubles isolated embedded-Postgres suites and can starve
+    // their startup hooks under the stable full-run lane.
+    include: ["src/**/*.test.ts"],
     // Each server suite boots + tears down its own embedded Postgres in
     // beforeAll/afterAll. Under the loaded serial shard (maxWorkers=1) the
     // graceful shutdown can occasionally cross vitest's default 10s hookTimeout,

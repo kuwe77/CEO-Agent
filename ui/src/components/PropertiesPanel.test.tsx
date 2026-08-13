@@ -109,6 +109,8 @@ describe("PropertiesPanel", () => {
       await renderPanel();
       const aside = container.querySelector("aside");
       expect(aside).not.toBeNull();
+      expect(aside!.className).toContain("hidden lg:flex");
+      expect(aside!.className).not.toContain("hidden md:flex");
       expect(aside!.style.width).toBe("322px");
       expect(aside!.querySelector('[role="separator"][aria-label="Resize panel"]')).not.toBeNull();
       expect(container.querySelector('[aria-label="Maximize panel"]')).not.toBeNull();

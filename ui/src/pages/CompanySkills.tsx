@@ -861,7 +861,7 @@ function SkillCard({
         ) : null}
         <SkillCardIcon card={card} />
         <div className="min-w-0 flex-1">
-          <div className="truncate font-mono text-sm font-medium text-foreground">{card.name}</div>
+          <div className="line-clamp-2 break-words font-mono text-sm font-medium leading-5 text-foreground" title={card.name}>{card.name}</div>
           <div className="truncate text-xs text-muted-foreground">
             by {card.author}{card.version ? ` · ${card.version}` : ""}
           </div>
@@ -1331,20 +1331,20 @@ export function DiscoveryGrid({
         {/* Tab strip — Bundled/required lives at the end */}
         <div className="border-b border-border px-4">
           <Tabs value={tab} onValueChange={(value) => onTabChange(value as DiscoveryTab)}>
-            <TabsList variant="line" className="p-0">
-              <TabsTrigger value="all" className="px-3">
+            <TabsList variant="line" className="grid w-full grid-cols-4 p-0">
+              <TabsTrigger value="all" className="min-w-0 px-1 text-xs sm:px-3 sm:text-sm">
                 <span>All</span>
                 <span className="ml-1.5 text-(length:--text-micro) text-muted-foreground">{tabCounts.all}</span>
               </TabsTrigger>
-              <TabsTrigger value="installed" className="px-3">
+              <TabsTrigger value="installed" className="min-w-0 px-1 text-xs sm:px-3 sm:text-sm">
                 <span>Installed</span>
                 <span className="ml-1.5 text-(length:--text-micro) text-muted-foreground">{tabCounts.installed}</span>
               </TabsTrigger>
-              <TabsTrigger value="catalog" className="px-3">
+              <TabsTrigger value="catalog" className="min-w-0 px-1 text-xs sm:px-3 sm:text-sm">
                 <span>Catalog</span>
                 <span className="ml-1.5 text-(length:--text-micro) text-muted-foreground">{tabCounts.catalog}</span>
               </TabsTrigger>
-              <TabsTrigger value="bundled" className="px-3">
+              <TabsTrigger value="bundled" className="min-w-0 px-1 text-xs sm:px-3 sm:text-sm">
                 <span>Bundled</span>
                 <span className="ml-1.5 text-(length:--text-micro) text-muted-foreground">{tabCounts.bundled}</span>
               </TabsTrigger>

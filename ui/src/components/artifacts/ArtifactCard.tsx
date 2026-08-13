@@ -139,7 +139,7 @@ function TextPreview({ artifact }: { artifact: CompanyArtifact }) {
   return (
     <PreviewFrame className="bg-card">
       <div className="absolute inset-0 overflow-hidden p-3">
-        <p className="max-h-full overflow-hidden whitespace-pre-wrap break-words text-base leading-6 text-muted-foreground/75">
+        <p className="max-h-full overflow-hidden whitespace-pre-wrap break-words text-base leading-6 text-foreground/80">
           {preview}
         </p>
       </div>
@@ -192,48 +192,58 @@ function SecondaryAction({
 
 export function ArtifactCard({ artifact }: ArtifactCardProps) {
   return (
-    <Link
-      // design-allow(card-pattern): navigation <Link> card; Card renders a div and would break anchor semantics (C5a Run 3)
-      to={artifact.href}
-      disableIssueQuicklook
+    <div
       data-testid="artifact-card"
       data-media-kind={artifact.mediaKind}
-      className="group flex flex-col overflow-hidden rounded-lg border border-border bg-card cursor-pointer transition-colors hover:border-foreground/20 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="group relative flex flex-col overflow-hidden rounded-lg border border-border bg-card cursor-pointer transition-colors hover:border-foreground/20 hover:shadow-md"
     >
-      <ArtifactPreview artifact={artifact} />
+      <Link
+        // design-allow(card-pattern): stretched primary link; secondary file actions remain sibling anchors.
+        to={artifact.href}
+        disableIssueQuicklook
+        data-artifact-primary-link="true"
+        aria-label={`Open ${artifact.title}`}
+        className="absolute inset-0 z-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span className="sr-only">Open {artifact.title}</span>
+      </Link>
 
-      <div className="flex flex-1 flex-col gap-1 p-3">
-        <div className="flex h-7 items-start justify-between gap-2">
-          <h3
-            className="min-w-0 flex-1 truncate text-sm font-medium leading-7 text-foreground/85"
-            title={artifact.title}
-          >
-            {artifact.title}
-          </h3>
-          <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-            {artifact.openPath ? (
-              <SecondaryAction href={artifact.openPath} title="Open file in new tab">
-                <ExternalLink className="h-3.5 w-3.5" />
-              </SecondaryAction>
-            ) : null}
-            {artifact.downloadPath ? (
-              <SecondaryAction href={artifact.downloadPath} download title="Download file">
-                <Download className="h-3.5 w-3.5" />
-              </SecondaryAction>
+      <div className="pointer-events-none relative z-10 flex flex-1 flex-col">
+        <ArtifactPreview artifact={artifact} />
+
+        <div className="flex flex-1 flex-col gap-1 p-3">
+          <div className="flex h-7 items-start justify-between gap-2">
+            <h3
+              className="min-w-0 flex-1 truncate text-sm font-medium leading-7 text-foreground/85"
+              title={artifact.title}
+            >
+              {artifact.title}
+            </h3>
+            <div className="pointer-events-auto relative z-10 flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+              {artifact.openPath ? (
+                <SecondaryAction href={artifact.openPath} title="Open file in new tab">
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </SecondaryAction>
+              ) : null}
+              {artifact.downloadPath ? (
+                <SecondaryAction href={artifact.downloadPath} download title="Download file">
+                  <Download className="h-3.5 w-3.5" />
+                </SecondaryAction>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="mt-0.5 flex items-center gap-1.5 text-(length:--text-micro) text-muted-foreground/65">
+            <span>Last edited {formatDate(artifact.updatedAt)}</span>
+            {artifact.createdByAgent ? (
+              <>
+                <span className="text-muted-foreground/50">·</span>
+                <span className="truncate">{artifact.createdByAgent.name}</span>
+              </>
             ) : null}
           </div>
         </div>
-
-        <div className="mt-0.5 flex items-center gap-1.5 text-(length:--text-micro) text-muted-foreground/65">
-          <span>Last edited {formatDate(artifact.updatedAt)}</span>
-          {artifact.createdByAgent ? (
-            <>
-              <span className="text-muted-foreground/50">·</span>
-              <span className="truncate">{artifact.createdByAgent.name}</span>
-            </>
-          ) : null}
-        </div>
       </div>
-    </Link>
+    </div>
   );
 }

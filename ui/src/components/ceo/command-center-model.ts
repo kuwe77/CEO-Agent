@@ -128,10 +128,15 @@ export function buildTopology(agents: readonly Agent[]): AgentTopology {
   if (disconnected.length > 0) layers.push(disconnected);
 
   const positionById = new Map<string, TopologyPosition>();
-  layers.forEach((agentsInLayer, layerIndex) => {
+  const maxNodesPerVisualRow = 4;
+  let visualRow = 0;
+  layers.forEach((agentsInLayer) => {
     agentsInLayer.forEach((agent, index) => {
-      positionById.set(agent.id, { x: 48 + index * 272, y: 40 + layerIndex * 156 });
+      const column = index % maxNodesPerVisualRow;
+      const rowOffset = Math.floor(index / maxNodesPerVisualRow);
+      positionById.set(agent.id, { x: 48 + column * 272, y: 40 + (visualRow + rowOffset) * 156 });
     });
+    visualRow += Math.max(1, Math.ceil(agentsInLayer.length / maxNodesPerVisualRow));
   });
 
   return {

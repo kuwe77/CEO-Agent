@@ -428,7 +428,7 @@ export function Agents() {
         metaSpacerClassName="hidden xl:block"
         trailing={
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-3">
+            <div className="hidden lg:flex items-center gap-3">
               {liveRunByAgent.has(agent.id) && (
                 <LiveRunIndicator
                   agentRef={agentRouteRef(agent)}
@@ -672,15 +672,15 @@ function OrgTreeNode({
           <AgentStatusCapsule status={node.status} />
         )}
         <div className="flex-1 min-w-0 flex flex-wrap items-center gap-2">
-          {/* Name floor + `truncate` keeps the primary identifier readable; the
-              cluster wraps to a second line under pressure instead of starving
-              the name at narrow widths. */}
-          <div className="min-w-(--sz-7rem) truncate">
-            <span className="text-sm font-medium">{node.name}</span>
-            <span className="text-xs text-muted-foreground ml-2">
+          {/* The org view is the default at tablet width. Keep identity on its
+              own wrapping lines rather than hiding director names or titles
+              behind an ellipsis beside the status/action cluster. */}
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <div className="break-words text-sm font-medium leading-5">{node.name}</div>
+            <div className="break-words text-xs leading-4 text-muted-foreground">
               {roleLabels[node.role] ?? node.role}
               {agent?.title ? ` - ${agent.title}` : ""}
-            </span>
+            </div>
           </div>
           {builtInState && showBuiltInLifecycle && (
             <div className="flex items-center gap-1.5 shrink-0">

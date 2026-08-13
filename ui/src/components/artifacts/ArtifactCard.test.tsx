@@ -59,8 +59,21 @@ describe("ArtifactCard", () => {
     expect(markup).toContain("flex h-7 items-start justify-between gap-2");
     expect(markup).toContain("leading-7");
     expect(markup).toContain("Last edited Jun 1, 2026");
+    expect(markup).toContain("relative z-10 flex flex-1 flex-col");
     expect(markup).not.toContain("Landing visuals");
     expect(markup).not.toContain("Edited ");
+  });
+
+  it("keeps file actions outside the primary navigation anchor", () => {
+    const container = document.createElement("div");
+    container.innerHTML = renderToStaticMarkup(<ArtifactCard artifact={makeArtifact()} />);
+
+    const card = container.querySelector('[data-testid="artifact-card"]');
+    const primaryLink = card?.querySelector('[data-artifact-primary-link="true"]');
+    expect(card?.tagName).toBe("DIV");
+    expect(primaryLink?.tagName).toBe("A");
+    expect(primaryLink?.querySelector("a")).toBeNull();
+    expect(card?.querySelectorAll("a")).toHaveLength(3);
   });
 
   it("renders only the artifact subject and absolute metadata under the preview", () => {
@@ -191,6 +204,7 @@ describe("ArtifactCard", () => {
     expect(markup).toContain('data-media-kind="document"');
     expect(markup).toContain("This is the plan preview excerpt.");
     expect(markup).toContain("text-base");
+    expect(markup).toContain("text-foreground/80");
     expect(markup).toContain("leading-6");
     expect(markup).toContain("max-h-full");
     expect(markup).toContain("overflow-hidden");

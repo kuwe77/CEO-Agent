@@ -11,7 +11,9 @@ import {
   canBoardManageRuntime,
   canBoardResolveRecoveryAction,
   IssueDetail,
+  issuePropertiesVisibilityForLayoutTransition,
   readRecoveryReconcileWorkspaceId,
+  shouldUseIssuePropertiesDrawer,
   shouldScrollIssueDetailToTopOnNavigation,
 } from "./IssueDetail";
 import { queryKeys } from "../lib/queryKeys";
@@ -961,6 +963,21 @@ async function waitForAssertion(assertion: () => void, attempts = 20) {
   }
   throw lastError;
 }
+
+describe("Issue detail responsive properties", () => {
+  it("uses the drawer at tablet widths and the side panel on desktop", () => {
+    expect(shouldUseIssuePropertiesDrawer(768)).toBe(true);
+    expect(shouldUseIssuePropertiesDrawer(1023)).toBe(true);
+    expect(shouldUseIssuePropertiesDrawer(1024)).toBe(false);
+  });
+
+  it("preserves the latest desktop panel preference until a layout boundary is crossed", () => {
+    expect(issuePropertiesVisibilityForLayoutTransition(false, false, false)).toBeNull();
+    expect(issuePropertiesVisibilityForLayoutTransition(false, true, false)).toBe(false);
+    expect(issuePropertiesVisibilityForLayoutTransition(true, false, false)).toBe(false);
+    expect(issuePropertiesVisibilityForLayoutTransition(true, false, true)).toBe(true);
+  });
+});
 
 describe("IssueDetail", () => {
   let container: HTMLDivElement;

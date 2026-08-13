@@ -186,6 +186,26 @@ describe("computeLayout", () => {
     expect(running.x2).toBeGreaterThan(running.x1 + 3);
   });
 
+  it("keeps very short runs visually targetable in wide date windows", () => {
+    const data = sample();
+    data.spans.push({
+      actorId: "agent:ceo",
+      laneHint: null,
+      runId: "one-second-run",
+      issueId: "i-short",
+      issueIdentifier: "PAP-SHORT",
+      issueTitle: "One-second run",
+      start: `${DAY}T10:00:00.000Z`,
+      end: `${DAY}T10:00:01.000Z`,
+      status: "completed",
+      retryOfRunId: null,
+    });
+    const layout = computeLayout(data, { ...OPTS, pxPerMinute: 0.08 });
+    const bar = layout.rows.flatMap((row) => row.bars).find((candidate) => candidate.span.runId === "one-second-run")!;
+
+    expect(bar.x2 - bar.x1).toBeGreaterThanOrEqual(12);
+  });
+
   it("produces a deterministic issue hue + legend", () => {
     const layout = computeLayout(sample(), OPTS);
     expect(layout.issues.length).toBe(5); // i-405, i-075, i-422, i-423, i-286

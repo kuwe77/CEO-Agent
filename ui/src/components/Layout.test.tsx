@@ -1009,18 +1009,19 @@ describe("Layout", () => {
     return { root, rootEl };
   }
 
-  it("clips horizontal overflow on the mobile layout root so the viewport can't scroll sideways", async () => {
+  it("uses an application-height mobile shell so the in-flow navigation never overlays page actions", async () => {
     mockSidebarState.isMobile = true;
     mockSidebarState.sidebarOpen = false;
     const { root, rootEl } = await renderLayoutRoot();
 
     expect(rootEl.tagName).toBe("DIV");
     expect(rootEl.className).toContain("bg-background");
-    // The mobile root must clip horizontal overflow to prevent a stray wide
-    // descendant from making the whole viewport scroll sideways. clip (not
-    // hidden) keeps overflow-y visible so body scroll keeps working.
-    expect(rootEl.classList.contains("overflow-x-clip")).toBe(true);
-    expect(rootEl.classList.contains("overflow-hidden")).toBe(false);
+    // The mobile root owns the viewport and the main region becomes the page
+    // scroller. That keeps the persistent mobile navigation in normal layout
+    // flow instead of covering the final actions in a long card or list.
+    expect(rootEl.classList.contains("overflow-clip")).toBe(true);
+    expect(rootEl.classList.contains("h-dvh")).toBe(true);
+    expect(rootEl.classList.contains("flex")).toBe(true);
 
     await act(async () => {
       root.unmount();

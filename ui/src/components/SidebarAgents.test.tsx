@@ -360,6 +360,20 @@ describe("SidebarAgents", () => {
     expect(container.querySelector('button[aria-label="Agents section actions"]')).toBeNull();
   });
 
+  it("lets long specialist names wrap to two lines in the expanded sidebar", async () => {
+    mockAgentsApi.list.mockResolvedValue([
+      makeAgent({ id: "agent-engineering", name: "Engineering Director", urlKey: "engineering-director" }),
+    ]);
+
+    await renderSidebarAgents();
+
+    const label = Array.from(container.querySelectorAll("span"))
+      .find((element) => element.textContent === "Engineering Director");
+    expect(label?.className).toContain("line-clamp-2");
+    expect(label?.className).toContain("whitespace-normal");
+    expect(label?.className).not.toContain("truncate");
+  });
+
   it("pins starred agents at the top without subheadings and dedupes them from the recent list", async () => {
     mockAgentsApi.list.mockResolvedValue([
       makeAgent({ id: "agent-a", name: "Alpha", urlKey: "alpha" }),

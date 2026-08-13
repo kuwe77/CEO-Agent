@@ -14,7 +14,24 @@ vi.mock("@/lib/router", () => ({
 }));
 
 vi.mock("@/components/ActiveAgentsPanel", () => ({
-  ActiveAgentsPanel: () => <div>Live operations panel</div>,
+  ActiveAgentsPanel: ({
+    variant,
+    gridClassName,
+    cardClassName,
+  }: {
+    variant?: string;
+    gridClassName?: string;
+    cardClassName?: string;
+  }) => (
+    <div
+      data-testid="live-operations-panel"
+      data-variant={variant}
+      data-grid-class={gridClassName}
+      data-card-class={cardClassName}
+    >
+      Live operations panel
+    </div>
+  ),
 }));
 
 vi.mock("@/components/ActivityRow", () => ({
@@ -22,7 +39,7 @@ vi.mock("@/components/ActivityRow", () => ({
 }));
 
 vi.mock("@/plugins/slots", () => ({
-  PluginSlotOutlet: () => <div>Plugin slots</div>,
+  PluginSlotOutlet: ({ className }: { className?: string }) => <div data-testid="plugin-slots" className={className}>Plugin slots</div>,
 }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -138,6 +155,40 @@ describe("CommandCenter", () => {
     expect(container.textContent).toContain("Open Agent Studio");
     expect(container.textContent).not.toContain("Model routing");
     expect(container.textContent).not.toContain("Agent topology");
+  });
+
+  it("uses container-aware execution regions and compact run summaries", async () => {
+    await act(async () => {
+      root.render(
+        <CommandCenter
+          companyId="company-1"
+          companyName="CEO Agent Labs"
+          summary={dashboard}
+          agents={agents}
+          issues={[issue]}
+          artifacts={[artifact]}
+          activity={[]}
+          agentMap={new Map(agents.map((agent) => [agent.id, agent]))}
+          userProfileMap={new Map()}
+          entityNameMap={new Map()}
+          entityTitleMap={new Map()}
+          lastUpdatedAt={null}
+        />,
+      );
+    });
+
+    const commandGrid = container.querySelector(".ceo-command-center__command-grid");
+    const livePanel = container.querySelector('[data-testid="live-operations-panel"]');
+    const pluginSlots = container.querySelector('[data-testid="plugin-slots"]');
+
+    expect(commandGrid?.className).not.toContain("xl:grid-cols-2");
+    expect(container.querySelector(".ceo-command-center__work")).not.toBeNull();
+    expect(container.querySelector(".ceo-command-center__evidence")).not.toBeNull();
+    expect(container.querySelector(".ceo-command-center__operations")).not.toBeNull();
+    expect(container.querySelector(".ceo-command-center__audit")).not.toBeNull();
+    expect(livePanel?.getAttribute("data-variant")).toBe("compact");
+    expect(pluginSlots?.className).toContain("ceo-command-center__plugin-grid");
+    expect(pluginSlots?.className).not.toContain("md:grid-cols-2");
   });
 
   it("prioritizes founder decisions and blocked work in Today", async () => {
@@ -321,5 +372,20 @@ describe("CommandCenter", () => {
     expect(indexRule).toContain("color: var(--ceo-os-orange-dark)");
     expect(indexRule).toContain("opacity: 1");
     expect(indexRule).not.toMatch(/opacity:\s*0\./);
+  });
+
+  it("keeps compact run cards readable on their light surface", () => {
+    const cssPath = [
+      resolve(process.cwd(), "src/index.css"),
+      resolve(process.cwd(), "ui/src/index.css"),
+    ].find((candidate) => existsSync(candidate));
+    expect(cssPath).toBeDefined();
+
+    const css = readFileSync(cssPath!, "utf8");
+    const rule = css.match(/\.ceo-command-center \.ceo-command-center__run-card\s*\{([^}]*)\}/)?.[1];
+
+    expect(rule).toContain("background: var(--ceo-os-paper-bright)");
+    expect(rule).toContain("color: var(--ceo-os-ink)");
+    expect(rule).not.toContain("!important");
   });
 });
